@@ -13,5 +13,5 @@ int main(int argc, char** argv) {
   }
 
   assert(argc == 3);
-  cout << argv[1] << " " << argv[2];  
+  cout << argv[1] << endl << argv[2] << endl;  
 }
