@@ -24,6 +24,16 @@ void read_instance(const char* file) {
   }
 }
 
+void write_ans(string argv, double elapsed_seconds, int L, VectCoords disposicion){
+  //TODO: reset input file
+  ofstream outp(argv);
+  outp << elapsed_seconds << endl << L << endl;
+  for (pair bloc : disposicion){
+    outp << bloc.first.first << " " << bloc.first.second << " ";
+    outp << bloc.second.first << " " << bloc.second.second << endl;
+  }
+}
+
 int main(int argc, char** argv) {
 
   // Escritura de formato de ejecución
@@ -41,13 +51,13 @@ int main(int argc, char** argv) {
   ofstream outp(argv[2]);
   ifstream inp(argv[1]);
 
-  // Variables d'entrada i sortida
+  // Variables de entrada y salida
   Pair Telar;
   Map n;
 
-  int L;
-  Coords pieza;
-  VectCoords organizacion;
+  int L = 500;
+  Coords pieza = {{0,0}, {1,1}};
+  VectCoords disposicion = {pieza};
   
   // Lectura de archivo de entrada
   inp >> Telar.first >> Telar.second;
@@ -62,6 +72,6 @@ int main(int argc, char** argv) {
   auto end = chrono::steady_clock::now();
   auto elapsed = chrono::duration_cast<chrono::milliseconds>(end - start);
   double elapsed_seconds = elapsed.count() / 1000.0;
-  write_ans(elapsed_seconds, L, )
+  write_ans(argv[2], elapsed_seconds, L, disposicion);
   outp.close();
 }
