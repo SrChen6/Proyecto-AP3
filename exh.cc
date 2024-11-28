@@ -27,7 +27,7 @@ void read_instance(const char* file) {
 }
 
 void write_ans(string argv, double elapsed_seconds, VectCoords disposicion){
-  //TODO: reset output file
+  //TODO: reset output file HOLA
   ofstream outp(argv);
   outp << elapsed_seconds << endl << L << endl;
   for (pair bloc : disposicion){
