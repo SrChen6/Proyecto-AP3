@@ -26,6 +26,12 @@ void exh_search(char** argv, vector<int>& front, int k);
 // Inicio de cronómetro
 auto start = chrono::steady_clock::now();
 
+void write_n(){
+  for(pair<Pair, int> bloc : n){
+    cout << bloc.first.first << " " << bloc.first.second << " ; " << bloc.second << endl;
+  }
+}
+
 void read_instance(char** file, int& k) {
   ifstream inp(file[1]);
   inp >> W >> N;
@@ -36,6 +42,7 @@ void read_instance(char** file, int& k) {
     N -= ni;
     n[{pi, qi}] = ni;
   }
+  write_n();
   std::cout << "W: "<<W<<" N: "<<k<<endl; //TEMPORAL: PARA FACILITAR DEBUGGING
 }
 
@@ -58,6 +65,13 @@ bool valid(){
   return L < best_L;
 }
 
+bool is_original(Pair piece){
+  for (pair<Pair, int> original : n){
+    if (piece == original.first) return true;
+  }
+  return false;
+}
+
 void undo_change(vector<int>& front){
   Coords pos_piece = disp.back();
   disp.pop_back();
@@ -65,39 +79,45 @@ void undo_change(vector<int>& front){
   Pair ul = pos_piece.first;
   Pair dr = pos_piece.second;
   Pair piece = {dr.first-ul.first+1, dr.second-ul.second+1};
+
   for(int j = ul.first ; j <= dr.first; j++){
     front[j] -= piece.second;
   }
-  map<Pair, int>::iterator it = n.find(piece);
-  if (it != n.end()){ //Por si la pieza fue rotada
+
+  if (is_original(piece)){ //Por si la pieza fue rotada
     n[piece] += 1;
   }
   else{
-    cout << "LA PIEZA NO EXISTE!" << endl;
-    piece = {piece.second, piece.first};
-    n[piece] += 1;
+    Pair orig_piece = {piece.second, piece.first};
+    n[orig_piece] += 1;
   }
-  
 }
 
 void add_piece(Pair p, vector<int>& front, char** argv, int k){
-  if(n[p] > 0){
+    Pair orig_p = p; //Si la pieza esta rotada, consultar las dimensiones originales
+    if (!is_original(p)) orig_p = {p.second, p.first};
+    if(n[orig_p] > 0){
     int a = p.first;
-    bool may_add_here;
+    int b = p.second;
+    bool may_add_here = true;
     
     for (int i=0; i<=W-a; ++i){ //Mirar cada casilla posible
       may_add_here = true;
       int j = 0;
-      while (j <a && may_add_here){
+      while (j <a && may_add_here){ // Si se puede añadir aquí
         may_add_here = may_add_here && (front[i] <= front[i+j]);
         ++j;
       }
 
       if (may_add_here){ //Añadir la pieza
-        n[p] -=1; // Quitar la pieza de que sea libre
-        disp.push_back({{i, front[i]},{i+p.first-1, front[i]+p.second-1}});
+        n[orig_p] -=1; // Quitar la pieza de que sea libre
+        disp.push_back({{i, front[i]},{i+a-1, front[i]+b-1}});
 
-        for (int j=0; j<a; ++j) front[i+j]+=p.second;
+        for (int j=0; j<a; ++j) front[i+j]+=b;
+//Problema: la actualización a front debría ser front[i+j] = front[i]+b;
+//Sin embargo, si se hace esto luego al quitar la pieza habremos perdido la información 
+//sobre qué posicion era la que había antes de añadir la pieza
+
         L = *max_element(front.cbegin(), front.cend());
         exh_search(argv, front, k-1);
         undo_change(front);
@@ -124,16 +144,13 @@ void exh_search(char** argv, vector<int>& front, int k){
     if(L < best_L){ //poda
       for(pair<Pair, int> blocs : n){
         Pair bloc = blocs.first;
-        if (blocs.second > 0) //Si quedan piezas de la dimension
-        {
-          if(bloc.first == bloc.second){ // Si la pieza es cuadrada
-            add_piece(bloc, front, argv, k); // update front, disp
-          }
-          else{
-            add_piece(bloc, front, argv, k);
-            //Caso rotado
-            add_piece({bloc.second, bloc.first},front, argv, k);
-          }
+        if(bloc.first == bloc.second){ // Si la pieza es cuadrada
+          add_piece(bloc, front, argv, k); // update front, disp
+        }
+        else{
+          add_piece(bloc, front, argv, k);
+          //Caso rotado
+          add_piece({bloc.second, bloc.first},front, argv, k);
         }
       }
     }
@@ -169,5 +186,5 @@ int main(int argc, char** argv) {
   auto elapsed = chrono::duration_cast<chrono::milliseconds>(end - start);
   double elapsed_seconds = elapsed.count() / 1000.0;
   cout << "Ha tardat en trobar totes les combinacions: " << elapsed_seconds<< endl;
-
+  write_n();
 }
