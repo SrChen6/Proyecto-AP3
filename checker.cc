@@ -29,8 +29,8 @@ ostream& operator << (ostream& out, const P& z) {
 
 bool within_bounds(const P& point) {
   return
-    0 <= point.first  and point.first  < W and
-    0 <= point.second and point.second < L;
+    0 <= point.first  && point.first  < W &&
+    0 <= point.second && point.second < L;
 }
 
 
@@ -43,13 +43,13 @@ bool solution_ok() {
   for (auto tl_br : sol) {
 
     P tl = tl_br.first;
-    if (not within_bounds(tl)) {
+    if (!within_bounds(tl)) {
       cout << "Error: position " << tl << " is out of bounds" << endl;
       return false;
     }
 
     P br = tl_br.second;
-    if (not within_bounds(br)) {
+    if (!within_bounds(br)) {
       cout << "Error: position " << br << " is out of bounds" << endl;
       return false;
     }
@@ -58,7 +58,7 @@ bool solution_ok() {
     int p = br.first  - tl.first  + 1;
     int q = br.second - tl.second + 1;
 
-    if (p <= 0 or q <= 0) {
+    if (p <= 0 || q <= 0) {
       cout << "Error: top-left corner "  << tl
            << " and bottom-right corner " << br
            << " do not define a valid rectangle" << endl;

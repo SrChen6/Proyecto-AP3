@@ -40,12 +40,17 @@ void read_instance(char** file, int& k) {
 }
 
 void write_ans(char** argv, double elapsed_seconds){
+  // Escribe las soluciones encontradas por terminal
   ofstream outp(argv[2]);
   outp << elapsed_seconds << endl << best_L << endl;
+  cout << elapsed_seconds << endl << best_L << endl;
   for (Coords bloc : best_disp){
     outp << bloc.first.first << " " << bloc.first.second << " ";
     outp << bloc.second.first << " " << bloc.second.second << endl;
+    cout << bloc.first.first << " " << bloc.first.second << " ";
+    cout << bloc.second.first << " " << bloc.second.second << endl;
   }
+  cout <<endl;
 }
 
 // No borrado por si metemos más podas 
@@ -57,38 +62,46 @@ void undo_change(vector<int>& front){
   Coords pos_piece = disp.back();
   disp.pop_back();
 
-  
-
   Pair ul = pos_piece.first;
   Pair dr = pos_piece.second;
   Pair piece = {dr.first-ul.first+1, dr.second-ul.second+1};
-  for(int j = ul.first ; j < dr.first+1; j++){
+  for(int j = ul.first ; j <= dr.first; j++){
     front[j] -= piece.second;
   }
-  n[piece] += 1;
+  map<Pair, int>::iterator it = n.find(piece);
+  if (it != n.end()){ //Por si la pieza fue rotada
+    n[piece] += 1;
+  }
+  else{
+    cout << "LA PIEZA NO EXISTE!" << endl;
+    piece = {piece.second, piece.first};
+    n[piece] += 1;
+  }
+  
 }
 
 void add_piece(Pair p, vector<int>& front, char** argv, int k){
-  n[p] -=1; // Quitar la pieza de que sea libre
-  int a = p.first;
-  bool may_add_here;
-  
-  for (int i=0; i<=W-a; ++i){ //Mirar cada casilla posible
-    may_add_here = true;
-    int j = 0;
-    while (j <a && may_add_here){
-      may_add_here = may_add_here && (front[i] <= front[i+j]);
-      ++j;
-    }
+  if(n[p] > 0){
+    int a = p.first;
+    bool may_add_here;
+    
+    for (int i=0; i<=W-a; ++i){ //Mirar cada casilla posible
+      may_add_here = true;
+      int j = 0;
+      while (j <a && may_add_here){
+        may_add_here = may_add_here && (front[i] <= front[i+j]);
+        ++j;
+      }
 
-    if (may_add_here){ //Añadir la pieza
-      disp.push_back({{i, front[i]},{i+p.first-1, front[i]+p.second-1}});
+      if (may_add_here){ //Añadir la pieza
+        n[p] -=1; // Quitar la pieza de que sea libre
+        disp.push_back({{i, front[i]},{i+p.first-1, front[i]+p.second-1}});
 
-
-      for (int j=0; j<a; ++j) front[i+j]+=p.second ;
-      L = *max_element(front.cbegin(), front.cend())+1;
-      exh_search(argv, front, k-1);
-      undo_change(front);
+        for (int j=0; j<a; ++j) front[i+j]+=p.second;
+        L = *max_element(front.cbegin(), front.cend());
+        exh_search(argv, front, k-1);
+        undo_change(front);
+      }
     }
   }
 }
@@ -109,16 +122,17 @@ void exh_search(char** argv, vector<int>& front, int k){
   }
   else{
     if(L < best_L){ //poda
-      for(pair<Pair, int> bloc : n){
-        if (bloc.second > 0) //Si quedan piezas de la dimension
+      for(pair<Pair, int> blocs : n){
+        Pair bloc = blocs.first;
+        if (blocs.second > 0) //Si quedan piezas de la dimension
         {
-          if(bloc.first.first == bloc.first.second){ // Si la pieza es cuadrada
-            add_piece(bloc.first, front, argv, k); // update front, disp
+          if(bloc.first == bloc.second){ // Si la pieza es cuadrada
+            add_piece(bloc, front, argv, k); // update front, disp
           }
           else{
-            add_piece(bloc.first, front, argv, k);
+            add_piece(bloc, front, argv, k);
             //Caso rotado
-            add_piece({bloc.first.second, bloc.first.first},front, argv, k);
+            add_piece({bloc.second, bloc.first},front, argv, k);
           }
         }
       }
