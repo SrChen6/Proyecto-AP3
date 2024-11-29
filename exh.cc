@@ -26,12 +26,6 @@ void exh_search(char** argv, vector<int>& front, int k);
 // Inicio de cronómetro
 auto start = chrono::steady_clock::now();
 
-void write_n(){
-  for(pair<Pair, int> bloc : n){
-    cout << bloc.first.first << " " << bloc.first.second << " ; " << bloc.second << endl;
-  }
-}
-
 void read_instance(char** file, int& k) {
   ifstream inp(file[1]);
   inp >> W >> N;
@@ -47,7 +41,7 @@ void read_instance(char** file, int& k) {
 }
 
 void write_ans(char** argv, double elapsed_seconds){
-  // Escribe las soluciones encontradas por terminal
+  // Escribe las soluciones encontradas por terminal y en el output file
   ofstream outp(argv[2]);
   outp << elapsed_seconds << endl << best_L << endl;
   cout << elapsed_seconds << endl << best_L << endl;
@@ -65,6 +59,7 @@ bool valid(){
   return L < best_L;
 }
 
+// Retorna true si la pieza es una de las dadas en el inp, sino es el transpuesto
 bool is_original(Pair piece){
   for (pair<Pair, int> original : n){
     if (piece == original.first) return true;
@@ -94,7 +89,7 @@ void undo_change(vector<int>& front){
 }
 
 void add_piece(Pair p, vector<int>& front, char** argv, int k){
-    Pair orig_p = p; //Si la pieza esta rotada, consultar las dimensiones originales
+    Pair orig_p = p; //Si la pieza esta rotada, consultar las dimensiones originales en n
     if (!is_original(p)) orig_p = {p.second, p.first};
     if(n[orig_p] > 0){
     int a = p.first;
