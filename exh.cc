@@ -36,7 +36,6 @@ void read_instance(char** file, int& k) {
     N -= ni;
     n[{pi, qi}] = ni;
   }
-  write_n();
   std::cout << "W: "<<W<<" N: "<<k<<endl; //TEMPORAL: PARA FACILITAR DEBUGGING
 }
 
@@ -181,5 +180,4 @@ int main(int argc, char** argv) {
   auto elapsed = chrono::duration_cast<chrono::milliseconds>(end - start);
   double elapsed_seconds = elapsed.count() / 1000.0;
   cout << "Ha tardat en trobar totes les combinacions: " << elapsed_seconds<< endl;
-  write_n();
 }
