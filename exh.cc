@@ -87,7 +87,7 @@ void undo_change(vector<int>& front){
   }
 }
 
-void add_piece(Pair p, vector<int>& front, char** argv, int k){
+void add_piece(Pair p, vector<int> front, char** argv, int k){
     Pair orig_p = p; //Si la pieza esta rotada, consultar las dimensiones originales en n
     if (!is_original(p)) orig_p = {p.second, p.first};
     if(n[orig_p] > 0){
