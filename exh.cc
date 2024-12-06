@@ -15,10 +15,6 @@ typedef vector<Coords>     VectCoords; //Conjunto de piezas posicionadas
 // GLOBALS 
 int W, N; //Anchura del telar y numero de comandas
 Map n; //Dimensiones + numero de piezas
-// int L=0; //Longitud ans parcial
-// int best_L=1; 
-// VectCoords disp = {}; //disposicion de ans parcial/total
-// VectCoords best_disp = {};
 
 // Declaración de funciones
 void exh_search(char** argv, vector<int> front, VectCoords& best_disp, VectCoords disp, int& best_L, int L, int k);
@@ -81,18 +77,30 @@ bool is_original(Pair piece){
 
 void add_piece( char** argv, Pair p, vector<int>& front, VectCoords& best_disp,
                 VectCoords& disp, int& best_L, int L, int k){
-    Pair orig_p = p; //Si la pieza esta rotada, consultar las dimensiones originales en n
-    if (!is_original(p)) orig_p = {p.second, p.first};
-    if(n[orig_p] > 0){
+  //Si la pieza esta rotada, consultar las dimensiones originales en n
+  Pair orig_p = p; 
+  if (!is_original(p)) orig_p = {p.second, p.first};
+
+  if(n[orig_p] > 0){
     int a = p.first;
     int b = p.second;
     bool may_add_here = true;
-    
-    for (int i=0; i<=W-a; ++i){ //Mirar cada casilla posible
+
+    // En vez de buscar de izquierda a derecha, buscar de arriba a abajo
+    vector<Pair> order(front.size());
+    for (int i = 0; i < int(front.size()); ++i) order[i] = {i, front[i]};
+    // Ordenar de más bajo a más alto
+    sort(order.begin(), order.end(),
+              [](const std::pair<int, int>& a, const std::pair<int, int>& b) {
+                  return a.second < b.second; // Compare by value
+              });
+    // for (int i=0; i<=W-a; ++i){ //Mirar cada casilla posible
+    for (Pair pos : order){ //Mirar cada casilla posible
+      int i = pos.first;
       may_add_here = true;
       int j = 0;
       while (j <a && may_add_here){ // Si se puede añadir aquí
-        may_add_here = may_add_here && (front[i] >= front[i+j]);
+        may_add_here = may_add_here && (front[i] >= front[i+j]) && i <= W-a;
         ++j;
       }
 
@@ -104,11 +112,13 @@ void add_piece( char** argv, Pair p, vector<int>& front, VectCoords& best_disp,
         
         // cout << "esta por llamar un nuevo nivel recursivo"<<endl;
         exh_search(argv, new_front, best_disp, disp, best_L, *max_element(new_front.cbegin(), new_front.cend()), k-1);
-        n[orig_p] +=1; // Deshacer los cambios recursivos
+        
+        // Deshacer los cambios recursivos
+        n[orig_p] +=1; 
         disp.pop_back();
       }
     }
-  }
+  }  
 }
 
 void exh_search(char** argv, vector<int> front, VectCoords& best_disp, VectCoords disp,
