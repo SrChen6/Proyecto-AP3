@@ -7,6 +7,9 @@
 #include <algorithm>
 using namespace std;
 
+// Idea: Reordenar el vector de piezas según grande a pequeño y generar dos vectores : una con la mitad grande 
+// y otra con la mitad pequeña. 
+
 typedef pair<int, int> Pair; //Tuplas
 typedef map<Pair, int>    Map; //Diccionarios
 typedef pair<Pair, Pair>     Coords; // Posición de una pieza en la solución
@@ -46,11 +49,6 @@ void write_ans(char** argv, double elapsed_seconds){
   }
 }
 
-// No borrado por si metemos más podas 
-bool valid(){
-  return L < best_L;
-}
-
 // void add_piece(Pair p, vector<int> front){
 //   n[p] -=1; // Quitar la pieza de que sea libre
 //   int a = p.first
@@ -59,12 +57,6 @@ bool valid(){
 //     if (std::all_of(front.cbegin(), front.cend(), [](int j) { return j <=i; }))
 //   }
 // }
-
-void undo_changes(vector<int> front, VectCoords disp){
-  Coords pos_piece = disp.pop_back();
-  Pair ul = pos_piece.first;
-  Pair 
-}
 
 void exh_search(char** argv, vector<int> front, int k){
   if(k==0){ //Si ha añadido todas las piezas 

@@ -37,6 +37,6 @@ def show_telar(rectangles):
     plt.show()
 
 # Example usage:
-with open('output_exh.txt', 'r') as file:
+with open('output.txt', 'r') as file:
     rectangles = [tuple(map(int, line.split())) for line in file.readlines()[2:]]
 show_telar(rectangles)
