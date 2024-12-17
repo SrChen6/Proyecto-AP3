@@ -80,8 +80,6 @@ void add_piece( char** argv, Pair p, vector<int>& front, VectCoords& best_disp,
   //Si la pieza esta rotada, consultar las dimensiones originales en n
   Pair orig_p = p; 
   if (!is_original(p)) orig_p = {p.second, p.first};
-
-  if(n[orig_p] > 0){
     int a = p.first;
     int b = p.second;
     bool may_add_here = true;
@@ -104,7 +102,7 @@ void add_piece( char** argv, Pair p, vector<int>& front, VectCoords& best_disp,
         ++j;
       }
 
-      if (may_add_here){ //Añadir la pieza
+      if (may_add_here && front[i]+b < best_L){ //Añadir la pieza
         n[orig_p] -=1;
         disp.push_back({{i, front[i]},{i+a-1, front[i]+b-1}});
         vector<int> new_front = front;
@@ -118,7 +116,6 @@ void add_piece( char** argv, Pair p, vector<int>& front, VectCoords& best_disp,
         disp.pop_back();
       }
     }
-  }  
 }
 
 void exh_search(char** argv, vector<int> front, VectCoords& best_disp, VectCoords disp,
@@ -145,14 +142,16 @@ void exh_search(char** argv, vector<int> front, VectCoords& best_disp, VectCoord
   else{
     if(L < best_L){ //poda
       for(pair<Pair, int> blocs : n){
-        Pair bloc = blocs.first;
-        if(bloc.first == bloc.second){ // Si la pieza es cuadrada
-          add_piece(argv, bloc, front, best_disp, disp, best_L, L, k); // update front, disp
-        }
-        else{
-          add_piece(argv, bloc, front, best_disp, disp, best_L, L, k);
-          //Caso rotado
-          add_piece(argv, {bloc.second, bloc.first}, front, best_disp, disp, best_L, L, k);
+        if(blocs.second > 0){
+          Pair bloc = blocs.first;
+          if(bloc.first == bloc.second){ // Si la pieza es cuadrada
+            add_piece(argv, bloc, front, best_disp, disp, best_L, L, k); // update front, disp
+          }
+          else{
+            add_piece(argv, bloc, front, best_disp, disp, best_L, L, k);
+            //Caso rotado
+            add_piece(argv, {bloc.second, bloc.first}, front, best_disp, disp, best_L, L, k);
+          }
         }
       }
     }
@@ -169,7 +168,7 @@ int main(int argc, char** argv) {
     exit(0);
   }
 
-  int k; // Contador recursivo
+  int k; // Numero de piezas por anadir
   assert(argc == 3);
   read_instance(argv, k);
   
@@ -180,11 +179,13 @@ int main(int argc, char** argv) {
   }
   cout << "best L: "<<best_L<<endl;
 
-  // Longitud a la que se ha llegado en cada columna
+  // Altura a la que se ha llegado en cada columna
   vector<int> front(W, 0); 
+
   VectCoords best_disp ={}, disp = {};
   exh_search(argv, front, best_disp, disp, best_L, 0, k);
 
+  // Finalización de la busqueda
   auto end = chrono::steady_clock::now();
   auto elapsed = chrono::duration_cast<chrono::milliseconds>(end - start);
   double elapsed_seconds = elapsed.count() / 1000.0;
