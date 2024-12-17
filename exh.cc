@@ -39,13 +39,13 @@ void read_instance(char** file, int& k) {
   int ni, pi, qi;
   while (N > 0) {
     inp >> ni >> pi >> qi;
-    cout <<"entrada "<< ni << " " << pi<< " " << qi<<endl;
+    // cout <<"entrada "<< ni << " " << pi<< " " << qi<<endl;
     N -= ni;
     n[{pi, qi}] = ni;
     cout << n[{pi, qi}]<< " " <<ni<<endl;
   }
-  std::cout << "W: "<<W<<" N: "<<k<<endl;
-  for (const auto& p : n){ cout <<n[{p.first.first, p.first.second}]<<" "<< p.first.first << " " <<p.first.second<<endl;}
+  // std::cout << "W: "<<W<<" N: "<<k<<endl;
+  // for (const auto& p : n){ cout <<n[{p.first.first, p.first.second}]<<" "<< p.first.first << " " <<p.first.second<<endl;}
 
 }
 
@@ -78,7 +78,6 @@ void add_piece( char** argv, Pair p, vector<int>& front, VectCoords& best_disp,
   if (!is_original(p)) orig_p = {p.second, p.first};
   int a = p.first;
   int b = p.second;
-  bool may_add_here = true;
 
   // En vez de buscar de izquierda a derecha, buscar de arriba a abajo
   vector<Pair> order(front.size());
@@ -88,10 +87,11 @@ void add_piece( char** argv, Pair p, vector<int>& front, VectCoords& best_disp,
             [](const std::pair<int, int>& a, const std::pair<int, int>& b) {
                 return a.second < b.second; // Compare by value
             });
+            
   // for (int i=0; i<=W-a; ++i){ //Buscar de izquierda a darecha
   for (Pair pos : order){ //Buscar de debajo a arriba
     int i = pos.first;
-    may_add_here = true;
+    bool may_add_here = true;
     int j = 0;
     while (j <a && may_add_here){ // Si se puede añadir aquí
       may_add_here = may_add_here && (front[i] >= front[i+j]) && i <= W-a;
@@ -137,7 +137,7 @@ void exh_search(char** argv, vector<int> front, VectCoords& best_disp, VectCoord
     }
   }
   else{
-    if(true){ //poda L < best_L
+    if(L < best_L){ //poda IDEA: numero de forats
       for(pair<Pair, int> blocs : n){
         // cout << "blocs " << blocs.first.first << " " << blocs.first.second << " " <<blocs.second<<endl;
         if(blocs.second > 0){
