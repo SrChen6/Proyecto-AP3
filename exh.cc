@@ -27,7 +27,7 @@ int W, N; //Anchura del telar y numero de comandas
 Map n; //Dimensiones -> numero de piezas
 
 // Declaración de funciones
-void exh_search(char** argv, vector<int> front, VectCoords& best_disp, VectCoords disp, int& best_L, int L, int f, int& min_f, int k);
+void exh_search(char** argv, vector<int>& front, VectCoords& best_disp, VectCoords& disp, int& best_L, int L, int f, int& min_f, int k);
 
 // Inicio de cronómetro
 auto start = chrono::steady_clock::now();
@@ -80,7 +80,7 @@ bool poda(int L, int best_L, int f, int min_f){
   return L > best_L || f > min_f;
 }
 
-void add_piece( char** argv, Pair p, vector<int>& front, VectCoords& best_disp,
+void add_piece( char** argv, Pair p, vector<int> front, VectCoords& best_disp,
                 VectCoords& disp, int& best_L, int L, int f, int& min_f, int k){
   Pair orig_p = p; 
   if (!is_original(p)) orig_p = {p.second, p.first};
@@ -107,14 +107,10 @@ void add_piece( char** argv, Pair p, vector<int>& front, VectCoords& best_disp,
       // cout << "fixed " << i <<endl;
       n[orig_p] -=1;
       disp.push_back({{i, front[i]},{i+a-1, front[i]+b-1}});
-      int pivot = front[i];
-      int new_f = f;
-      for (int j=0; j<a; ++j){
-        new_f += pivot-front[i+j]; //Part de baix del bloc - frontera anterior
-        front[i+j]= pivot+b;
-      }
+       int pivot = front[i];
+      for (int j=0; j<a; ++j) front[i+j]= pivot+b;
 
-      exh_search(argv, front, best_disp, disp, best_L, *max_element(front.cbegin(), front.cend()), new_f, min_f, k-1);
+      exh_search(argv, front, best_disp, disp, best_L, *max_element(front.cbegin(), front.cend()), f, min_f, k-1);
       
       // Deshacer los cambios recursivos
       n[orig_p] +=1; 
@@ -124,7 +120,7 @@ void add_piece( char** argv, Pair p, vector<int>& front, VectCoords& best_disp,
 }
 
 // f: numero de forats
-void exh_search(char** argv, vector<int> front, VectCoords& best_disp, VectCoords disp,
+void exh_search(char** argv, vector<int>& front, VectCoords& best_disp, VectCoords& disp,
                  int& best_L, int L, int f, int& min_f, int k)
 {
   // cout << "f: " << f<<endl;
