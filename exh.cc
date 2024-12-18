@@ -79,6 +79,7 @@ bool poda(int L, int best_L, int f, int min_f){
   // Problema: descarta solucines optimas
   return L > best_L || f > min_f;
 }
+//3a idea de poda: al mirar los agujeros generados, si el area de los agujeros es mayor a x*area de cualquier pieza, se detiene la ejecución
 
 void add_piece( char** argv, Pair p, vector<int> front, VectCoords& best_disp,
                 VectCoords& disp, int& best_L, int L, int f, int& min_f, int k){
