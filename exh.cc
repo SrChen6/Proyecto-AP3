@@ -27,7 +27,7 @@ int W, N; //Anchura del telar y numero de comandas
 Map n; //Dimensiones -> numero de piezas
 
 // Declaración de funciones
-void exh_search(char** argv, vector<int> front, VectCoords& best_disp, VectCoords disp, int& best_L, int L, int k);
+void exh_search(char** argv, vector<int> front, VectCoords& best_disp, VectCoords disp, int& best_L, int L, int f, int& min_f, int k);
 
 // Inicio de cronómetro
 auto start = chrono::steady_clock::now();
@@ -42,7 +42,7 @@ void read_instance(char** file, int& k) {
     // cout <<"entrada "<< ni << " " << pi<< " " << qi<<endl;
     N -= ni;
     n[{pi, qi}] = ni;
-    cout << n[{pi, qi}]<< " " <<ni<<endl;
+    // cout << n[{pi, qi}]<< " " <<ni<<endl;
   }
   // std::cout << "W: "<<W<<" N: "<<k<<endl;
   // for (const auto& p : n){ cout <<n[{p.first.first, p.first.second}]<<" "<< p.first.first << " " <<p.first.second<<endl;}
@@ -71,11 +71,20 @@ bool is_original(Pair piece){
   return false;
 }
 
+bool compareBySecond(const pair<int, int>& a, const pair<int, int>& b) {
+    return a.second < b.second; // Compare based on the second element
+}
+
+bool poda(int L, int best_L, int f, int min_f){
+  // Problema: descarta solucines optimas
+  return L > best_L || f > min_f;
+}
+
 void add_piece( char** argv, Pair p, vector<int>& front, VectCoords& best_disp,
-                VectCoords& disp, int& best_L, int L, int k){
-  //Si la pieza esta rotada, consultar las dimensiones originales en n
+                VectCoords& disp, int& best_L, int L, int f, int& min_f, int k){
   Pair orig_p = p; 
   if (!is_original(p)) orig_p = {p.second, p.first};
+
   int a = p.first;
   int b = p.second;
 
@@ -83,17 +92,13 @@ void add_piece( char** argv, Pair p, vector<int>& front, VectCoords& best_disp,
   vector<Pair> order(front.size());
   for (int i = 0; i < int(front.size()); ++i) order[i] = {i, front[i]};
   // Ordenar de más bajo a más alto
-  sort(order.begin(), order.end(),
-            [](const std::pair<int, int>& a, const std::pair<int, int>& b) {
-                return a.second < b.second; // Compare by value
-            });
+  sort(order.begin(), order.end(), compareBySecond);
             
-  // for (int i=0; i<=W-a; ++i){ //Buscar de izquierda a darecha
   for (Pair pos : order){ //Buscar de debajo a arriba
     int i = pos.first;
     bool may_add_here = true;
     int j = 0;
-    while (j <a && may_add_here){ // Si se puede añadir aquí
+    while (j <a && may_add_here){
       may_add_here = may_add_here && (front[i] >= front[i+j]) && i <= W-a;
       ++j;
     }
@@ -102,11 +107,14 @@ void add_piece( char** argv, Pair p, vector<int>& front, VectCoords& best_disp,
       // cout << "fixed " << i <<endl;
       n[orig_p] -=1;
       disp.push_back({{i, front[i]},{i+a-1, front[i]+b-1}});
-      vector<int> new_front = front;
-      for (int j=0; j<a; ++j) new_front[i+j]= front[i]+b;
-      
-      // cout << "esta por llamar un nuevo nivel recursivo"<<endl;
-      exh_search(argv, new_front, best_disp, disp, best_L, *max_element(new_front.cbegin(), new_front.cend()), k-1);
+      int pivot = front[i];
+      int new_f = f;
+      for (int j=0; j<a; ++j){
+        new_f += pivot-front[i+j]; //Part de baix del bloc - frontera anterior
+        front[i+j]= pivot+b;
+      }
+
+      exh_search(argv, front, best_disp, disp, best_L, *max_element(front.cbegin(), front.cend()), new_f, min_f, k-1);
       
       // Deshacer los cambios recursivos
       n[orig_p] +=1; 
@@ -115,15 +123,17 @@ void add_piece( char** argv, Pair p, vector<int>& front, VectCoords& best_disp,
   }
 }
 
+// f: numero de forats
 void exh_search(char** argv, vector<int> front, VectCoords& best_disp, VectCoords disp,
-                 int& best_L, int L, int k)
+                 int& best_L, int L, int f, int& min_f, int k)
 {
+  // cout << "f: " << f<<endl;
   // for (int col : front) cout << col <<" ";
   // cout<<endl;
-  // cout << k<< endl;
   if(k==0){ //Si ha añadido todas las piezas 
-    // cout <<"Ha puesto todas las piezas"<<endl;
     if(L < best_L){ 
+      if (f < min_f) min_f = f;
+      cout << "min_f "<< min_f<<endl;
       // cout << "Ha encontrado una solución mejor" << endl;
       best_L = L;
       best_disp = disp;
@@ -137,19 +147,19 @@ void exh_search(char** argv, vector<int> front, VectCoords& best_disp, VectCoord
     }
   }
   else{
-    if(L < best_L){ //poda IDEA: numero de forats
+    if(!poda(L, best_L, f, min_f)){
       for(pair<Pair, int> blocs : n){
         // cout << "blocs " << blocs.first.first << " " << blocs.first.second << " " <<blocs.second<<endl;
         if(blocs.second > 0){
           Pair bloc = blocs.first;
           if(bloc.first == bloc.second){ // Si la pieza es cuadrada
-            add_piece(argv, bloc, front, best_disp, disp, best_L, L, k); // update front, disp
+            add_piece(argv, bloc, front, best_disp, disp, best_L, L, f, min_f, k); // update front, disp
           }
           else{
-            add_piece(argv, bloc, front, best_disp, disp, best_L, L, k);
+            add_piece(argv, bloc, front, best_disp, disp, best_L, L, f, min_f, k);
             //Caso rotado
             // Idea: si és massa llarga tal que la longitud és major que W no fa falta considerar aquest cas
-            add_piece(argv, {bloc.second, bloc.first}, front, best_disp, disp, best_L, L, k);
+            add_piece(argv, {bloc.second, bloc.first}, front, best_disp, disp, best_L, L, f, min_f, k);
           }
         }
       }
@@ -182,7 +192,8 @@ int main(int argc, char** argv) {
   vector<int> front(W, 0); 
 
   VectCoords best_disp ={}, disp = {};
-  exh_search(argv, front, best_disp, disp, best_L, 0, k);
+  int min_f=9999;
+  exh_search(argv, front, best_disp, disp, best_L, 0, 0, min_f, k);
 
   // Finalización de la busqueda
   auto end = chrono::steady_clock::now();
