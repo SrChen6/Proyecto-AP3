@@ -26,11 +26,11 @@ typedef vector<Coords>     VectCoords; //Conjunto de piezas posicionadas
 int W, N; //Anchura del telar y numero de comandas
 Map n; //Dimensiones -> numero de piezas
 
-// Declaración de funciones
-void exh_search(char** argv, vector<int>& front, VectCoords& best_disp, VectCoords& disp, int& best_L, int L, int f, int& min_f, int k);
-
 // Inicio de cronómetro
 auto start = chrono::steady_clock::now();
+
+// Declaración de funciones
+void exh_search(char** argv, vector<int>& front, VectCoords& best_disp, VectCoords& disp, int& best_L, int L, int f, int& min_f, int k);
 
 void read_instance(char** file, int& k) {
   ifstream inp(file[1]);
@@ -95,7 +95,7 @@ void add_piece( char** argv, Pair p, vector<int> front, VectCoords& best_disp,
   // Ordenar de más bajo a más alto
   sort(order.begin(), order.end(), compareBySecond);
             
-  for (Pair pos : order){ //Buscar de debajo a arriba
+  for (Pair pos : order){ //Buscar de arriba a abajo
     int i = pos.first;
     bool may_add_here = true;
     int j = 0;
