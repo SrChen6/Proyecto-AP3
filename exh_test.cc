@@ -97,10 +97,10 @@ bool poda(int L, int best_L, int f, int min_f){
   // Problema: descarta solucines optimas
   bool poda1 = (L > best_L);
   bool poda2 = (f > min_f);
-  bool poda3 = forat_gran(f);
+  // bool poda3 = forat_gran(f);
   // cout << "f: " << f<<endl;
   // cout << "forat_gran: " << poda3<<endl;
-  return poda1 || poda2 || poda3;
+  return poda1 || poda2;// || poda3;
   // return L > best_L || f > min_f || forat_gran(f);
 }
 
@@ -139,7 +139,7 @@ void add_piece( char** argv, int i, vector<int>& front, VectCoords& best_disp,
         n[orig_p] -=1;
         disp.push_back({{i, front[i]},{i+a-1, front[i]+b-1}});
         vector<int> new_front = front;
-        update_teler(new_front, {a,b}, f, i);
+        update_teler(new_front, p, f, i);
         exh_search(argv, new_front, best_disp, disp, best_L, *max_element(new_front.cbegin(), new_front.cend()), f, min_f, k-1);
         // Deshacer los cambios recursivos
         n[orig_p] +=1; 

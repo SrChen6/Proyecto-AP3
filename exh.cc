@@ -29,7 +29,7 @@ vector<int> areas = {};
 auto start = chrono::steady_clock::now();
 
 // Declaración de funciones
-void exh_search(char** argv, vector<int>& front, VectCoords& best_disp, VectCoords& disp, int& best_L, int L, int f, int& min_f, int k);
+void exh_search(char** argv, vector<int> front, VectCoords& best_disp, VectCoords& disp, int& best_L, int L, int f, int& min_f, int k);
 
 double finish_time(){
   auto end = chrono::steady_clock::now();
@@ -100,7 +100,7 @@ bool poda(int L, int best_L, int f, int min_f){
   // bool poda3 = forat_gran(f);
   // cout << "f: " << f<<endl;
   // cout << "forat_gran: " << poda3<<endl;
-  return poda1 || poda2 ;//|| poda3;
+  return poda1 || poda2;// || poda3;
   // return L > best_L || f > min_f || forat_gran(f);
 }
 
@@ -124,38 +124,47 @@ void update_teler(vector<int>& front, Pair piece, int& f, int i){
 }
 
 
-void add_piece( char** argv, Pair p, vector<int> front, VectCoords& best_disp,
+void add_piece( char** argv, int i, vector<int>& front, VectCoords& best_disp,
                 VectCoords& disp, int& best_L, int L, int f, int& min_f, int k){
-  Pair orig_p = p; 
-  if (!is_original(p)) orig_p = {p.second, p.first};
+  for(pair<Pair, int> piezas : n){
+    if (piezas.second > 0){
+      Pair p = piezas.first;
 
-  int a = p.first;
-  int b = p.second;
+      Pair orig_p = p; 
+      if (!is_original(p)) orig_p = {p.second, p.first};
 
-  // En vez de buscar de izquierda a derecha, buscar de arriba a abajo
-  vector<Pair> order(front.size());
-  for (int i = 0; i < int(front.size()); ++i) order[i] = {i, front[i]};
-  sort(order.begin(), order.end(), compareBySecond);
-            
-  for (Pair pos : order){ //Buscar de arriba a abajo
-    int i = pos.first;
+      int a = p.first; int b = p.second;
+      if (may_add_here(front, a, i)){ //Añadir la pieza
+        // cout << "fixed " << i <<endl;
+        n[orig_p] -=1;
+        disp.push_back({{i, front[i]},{i+a-1, front[i]+b-1}});
+        vector<int> new_front = front;
+        update_teler(new_front, p, f, i);
+        exh_search(argv, new_front, best_disp, disp, best_L, *max_element(new_front.cbegin(), new_front.cend()), f, min_f, k-1);
+        // Deshacer los cambios recursivos
+        n[orig_p] +=1; 
+        disp.pop_back();
+      }
 
-    if (may_add_here(front, a, i)){ //Añadir la pieza
-      // cout << "fixed " << i <<endl;
-      n[orig_p] -=1;
-      disp.push_back({{i, front[i]},{i+a-1, front[i]+b-1}});
-      update_teler(front, {a,b}, f, i);
-      exh_search(argv, front, best_disp, disp, best_L, *max_element(front.cbegin(), front.cend()), f, min_f, k-1);
-      
-      // Deshacer los cambios recursivos
-      n[orig_p] +=1; 
-      disp.pop_back();
+      // Caso reversed
+      a = p.second; b = p.first;
+      if (may_add_here(front, a, i)){ //Añadir la pieza
+        // cout << "fixed " << i <<endl;
+        n[orig_p] -=1;
+        disp.push_back({{i, front[i]},{i+a-1, front[i]+b-1}});
+        vector<int> new_front = front;
+        update_teler(new_front, {a,b}, f, i);
+        exh_search(argv, new_front, best_disp, disp, best_L, *max_element(new_front.cbegin(), new_front.cend()), f, min_f, k-1);
+        // Deshacer los cambios recursivos
+        n[orig_p] +=1; 
+        disp.pop_back();
+      }
     }
-  }
+  }   
 }
 
 // f: numero de forats
-void exh_search(char** argv, vector<int>& front, VectCoords& best_disp, VectCoords& disp,
+void exh_search(char** argv, vector<int> front, VectCoords& best_disp, VectCoords& disp,
                  int& best_L, int L, int f, int& min_f, int k)
 {
   // cout << "f: " << f<<endl;
@@ -176,21 +185,14 @@ void exh_search(char** argv, vector<int>& front, VectCoords& best_disp, VectCoor
   }
   else{
     if(!poda(L, best_L, f, min_f)){
-      for(pair<Pair, int> piezas : n){
-        // cout << "piezas " << piezas.first.first << " " << piezas.first.second << " " <<piezas.second<<endl;
-        if(piezas.second > 0){
-          Pair piece = piezas.first;
-          if(piece.first == piece.second){ // Si la pieza es cuadrada
-            add_piece(argv, piece, front, best_disp, disp, best_L, L, f, min_f, k); // update front, disp
-          }
-          else{
-            add_piece(argv, piece, front, best_disp, disp, best_L, L, f, min_f, k);
-            //Caso rotado
-            if (piece.second <= W){
-              add_piece(argv, {piece.second, piece.first}, front, best_disp, disp, best_L, L, f, min_f, k);
-            }
-          }
-        }
+
+      vector<Pair> order(front.size());
+      for (int i = 0; i < int(front.size()); ++i) order[i] = {i, front[i]};
+      sort(order.begin(), order.end(), compareBySecond);
+
+      for (Pair pos : order){ //Buscar de arriba a abajo
+        int i = pos.first;
+        add_piece(argv, i, front, best_disp, disp, best_L, L, f, min_f, k);
       }
     }
   }
