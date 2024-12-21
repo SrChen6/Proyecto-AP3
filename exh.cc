@@ -31,7 +31,14 @@ auto start = chrono::steady_clock::now();
 // Declaración de funciones
 void exh_search(char** argv, vector<int>& front, VectCoords& best_disp, VectCoords& disp, int& best_L, int L, int f, int& min_f, int k);
 
+double finish_time(){
+  auto end = chrono::steady_clock::now();
+  auto elapsed = chrono::duration_cast<chrono::milliseconds>(end - start);
+  double elapsed_seconds = elapsed.count() / 1000.0;
+  return elapsed_seconds;
+}
 
+// Lee la entrada y asigna valor a las variables básicas
 void read_instance(char** file, int& k) {
   ifstream inp(file[1]);
   inp >> W >> N;
@@ -49,6 +56,7 @@ void read_instance(char** file, int& k) {
 
 }
 
+// Escribe el resultado sobre un archivo
 void write_ans(char** argv, double elapsed_seconds, VectCoords& best_disp, int best_L){
   // Escribe las soluciones encontradas por terminal y en el output file
   ofstream outp(argv[2]);
@@ -71,29 +79,50 @@ bool is_original(Pair piece){
   return false;
 }
 
-bool compareBySecond(const pair<int, int>& a, const pair<int, int>& b) {
+// Ordenación segun el segundo elemento de un Pair (la altura)
+bool compareBySecond(const Pair& a, const Pair& b) {
     return a.second < b.second; // Compare based on the second element
 }
 
+// Retorna true si el numero de agujeros es mayor que 2 veces el area de una pieza
 bool forat_gran(int f){
   for (pair<Pair, int> piece : n){
-    // Si el numero de agujeros es mayor que ct*area de cualquier pieza que no se haya puesto, el agujero es grande
     if (piece.second > 0 && 2*piece.first.first*piece.first.second< f) return true; 
   }
   return false;
 }
 
+// Devuelve true si la rama se puede podar
 bool poda(int L, int best_L, int f, int min_f){
   // Problema: descarta solucines optimas
   bool poda1 = (L > best_L);
   bool poda2 = (f > min_f);
-  bool poda3 = forat_gran(f);
+  // bool poda3 = forat_gran(f);
   // cout << "f: " << f<<endl;
   // cout << "forat_gran: " << poda3<<endl;
-  return poda1 || poda2 || poda3;
+  return poda1 || poda2 ;//|| poda3;
   // return L > best_L || f > min_f || forat_gran(f);
 }
-//3a idea de poda: al mirar los agujeros generados, si el area de los agujeros es mayor a x*area de cualquier pieza, se detiene la ejecución
+
+// Dado un telero, la anchura de una pieza y una posicion, devuelve si se puede añadir
+bool may_add_here(const vector<int>& front, int a, int i){
+  for (int j = 0; j < a; j++){
+    if (i+j >= W) return false;
+    if (front[i] < front[i+j]) return false;
+  }
+  return true;
+}
+
+// Dado un telero, una pieza y una posición, actualiza el telero para añadir la pieza
+void update_teler(vector<int>& front, Pair piece, int& f, int i){
+  int a = piece.first; int b = piece.second;
+  int pivot = front[i];
+  for (int j=0; j<a; ++j) {
+    f += pivot - front[i+j];
+    front[i+j]= pivot+b;
+  }
+}
+
 
 void add_piece( char** argv, Pair p, vector<int> front, VectCoords& best_disp,
                 VectCoords& disp, int& best_L, int L, int f, int& min_f, int k){
@@ -106,27 +135,16 @@ void add_piece( char** argv, Pair p, vector<int> front, VectCoords& best_disp,
   // En vez de buscar de izquierda a derecha, buscar de arriba a abajo
   vector<Pair> order(front.size());
   for (int i = 0; i < int(front.size()); ++i) order[i] = {i, front[i]};
-  // Ordenar de más bajo a más alto
   sort(order.begin(), order.end(), compareBySecond);
             
-  for (Pair pos : order){ //Buscar de debajo a arriba
+  for (Pair pos : order){ //Buscar de arriba a abajo
     int i = pos.first;
-    bool may_add_here = true;
-    int j = 0;
-    while (j <a && may_add_here){
-      may_add_here = may_add_here && (front[i] >= front[i+j]) && i <= W-a;
-      ++j;
-    }
 
-    if (may_add_here){ //Añadir la pieza
+    if (may_add_here(front, a, i)){ //Añadir la pieza
       // cout << "fixed " << i <<endl;
       n[orig_p] -=1;
       disp.push_back({{i, front[i]},{i+a-1, front[i]+b-1}});
-      int pivot = front[i];
-      for (int j=0; j<a; ++j) {
-        f += pivot - front[i+j];
-        front[i+j]= pivot+b;
-      }
+      update_teler(front, {a,b}, f, i);
       exh_search(argv, front, best_disp, disp, best_L, *max_element(front.cbegin(), front.cend()), f, min_f, k-1);
       
       // Deshacer los cambios recursivos
@@ -147,33 +165,29 @@ void exh_search(char** argv, vector<int>& front, VectCoords& best_disp, VectCoor
     if(L < best_L){ 
       if (f < min_f) min_f = f;
       cout << "min_f "<< min_f<<endl;
-      // cout << "Ha encontrado una solución mejor" << endl;
       best_L = L;
       best_disp = disp;
 
       // Mira el tiempo
-      auto end = chrono::steady_clock::now();
-      auto elapsed = chrono::duration_cast<chrono::milliseconds>(end - start);
-      double elapsed_seconds = elapsed.count() / 1000.0;
+      double elapsed_seconds = finish_time();
 
       write_ans(argv, elapsed_seconds, best_disp, best_L);
     }
   }
   else{
     if(!poda(L, best_L, f, min_f)){
-      for(pair<Pair, int> blocs : n){
-        // cout << "blocs " << blocs.first.first << " " << blocs.first.second << " " <<blocs.second<<endl;
-        if(blocs.second > 0){
-          Pair piece = blocs.first;
+      for(pair<Pair, int> piezas : n){
+        // cout << "piezas " << piezas.first.first << " " << piezas.first.second << " " <<piezas.second<<endl;
+        if(piezas.second > 0){
+          Pair piece = piezas.first;
           if(piece.first == piece.second){ // Si la pieza es cuadrada
             add_piece(argv, piece, front, best_disp, disp, best_L, L, f, min_f, k); // update front, disp
           }
           else{
             add_piece(argv, piece, front, best_disp, disp, best_L, L, f, min_f, k);
             //Caso rotado
-            // Idea: si és massa llarga tal que la longitud és major que W no fa falta considerar aquest cas
             if (piece.second <= W){
-            add_piece(argv, {piece.second, piece.first}, front, best_disp, disp, best_L, L, f, min_f, k);
+              add_piece(argv, {piece.second, piece.first}, front, best_disp, disp, best_L, L, f, min_f, k);
             }
           }
         }
@@ -212,8 +226,6 @@ int main(int argc, char** argv) {
   exh_search(argv, front, best_disp, disp, best_L, 0, 0, min_f, k);
 
   // Finalización de la busqueda
-  auto end = chrono::steady_clock::now();
-  auto elapsed = chrono::duration_cast<chrono::milliseconds>(end - start);
-  double elapsed_seconds = elapsed.count() / 1000.0;
+  double elapsed_seconds = finish_time();
   cout << "Ha tardat en trobar totes les combinacions: " << elapsed_seconds<< endl;
 }
