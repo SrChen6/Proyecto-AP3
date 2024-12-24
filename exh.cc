@@ -25,7 +25,7 @@ int W, N; //Anchura del telar y numero de comandas
 Map n; //Dimensiones -> numero de piezas
 vector<int> areas = {};
 
-// Inicio de cronómetro (start tiene que ser una variable global)
+// Inicio de cronómetro
 auto start = chrono::steady_clock::now();
 
 // Declaración de funciones
@@ -95,12 +95,12 @@ bool forat_gran(int f){
 // Devuelve true si la rama se puede podar
 bool poda(int L, int best_L, int f, int min_f){
   // Problema: descarta solucines optimas
-  bool poda1 = (L > best_L);
-  bool poda2 = (f > min_f);
-  // bool poda3 = forat_gran(f);
+  bool poda1 = (L >= best_L);
+  // bool poda2 = (f > min_f);
+  bool poda3 = forat_gran(f);
   // cout << "f: " << f<<endl;
   // cout << "forat_gran: " << poda3<<endl;
-  return poda1 || poda2;// || poda3;
+  return poda1 || poda3 ;//|| poda2;// ;
   // return L > best_L || f > min_f || forat_gran(f);
 }
 
@@ -118,6 +118,7 @@ void update_teler(vector<int>& front, Pair piece, int& f, int i){
   int a = piece.first; int b = piece.second;
   int pivot = front[i];
   for (int j=0; j<a; ++j) {
+    // cout<< i+j<<endl;
     f += pivot - front[i+j];
     front[i+j]= pivot+b;
   }
@@ -138,9 +139,13 @@ void add_piece( char** argv, int i, vector<int>& front, VectCoords& best_disp,
         // cout << "fixed " << i <<endl;
         n[orig_p] -=1;
         disp.push_back({{i, front[i]},{i+a-1, front[i]+b-1}});
+
         vector<int> new_front = front;
-        update_teler(new_front, p, f, i);
-        exh_search(argv, new_front, best_disp, disp, best_L, *max_element(new_front.cbegin(), new_front.cend()), f, min_f, k-1);
+        
+        int new_f = f;
+        update_teler(new_front, p, new_f, i);
+        exh_search(argv, new_front, best_disp, disp, best_L, *max_element(new_front.cbegin(), new_front.cend()), new_f, min_f, k-1);
+        
         // Deshacer los cambios recursivos
         n[orig_p] +=1; 
         disp.pop_back();
@@ -148,13 +153,17 @@ void add_piece( char** argv, int i, vector<int>& front, VectCoords& best_disp,
 
       // Caso reversed
       a = p.second; b = p.first;
-      if (may_add_here(front, a, i)){ //Añadir la pieza
+      if ( a != b && may_add_here(front, a, i)){ //Añadir la pieza
         // cout << "fixed " << i <<endl;
         n[orig_p] -=1;
         disp.push_back({{i, front[i]},{i+a-1, front[i]+b-1}});
+
         vector<int> new_front = front;
-        update_teler(new_front, {a,b}, f, i);
-        exh_search(argv, new_front, best_disp, disp, best_L, *max_element(new_front.cbegin(), new_front.cend()), f, min_f, k-1);
+        int new_f = f;
+        update_teler(new_front, {a,b}, new_f, i);
+        
+        exh_search(argv, new_front, best_disp, disp, best_L, *max_element(new_front.cbegin(), new_front.cend()), new_f, min_f, k-1);
+        
         // Deshacer los cambios recursivos
         n[orig_p] +=1; 
         disp.pop_back();
@@ -183,9 +192,13 @@ void exh_search(char** argv, vector<int> front, VectCoords& best_disp, VectCoord
       write_ans(argv, elapsed_seconds, best_disp, best_L);
     }
   }
+
   else{
     if(!poda(L, best_L, f, min_f)){
-
+    if (L == best_L){
+    double elapsed_seconds = finish_time();
+    cout << "ha trobat un equivalent al segon "<<elapsed_seconds<<endl;
+  }
       vector<Pair> order(front.size());
       for (int i = 0; i < int(front.size()); ++i) order[i] = {i, front[i]};
       sort(order.begin(), order.end(), compareBySecond);
