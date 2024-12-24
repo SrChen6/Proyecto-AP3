@@ -8,120 +8,199 @@
 using namespace std;
 
 typedef pair<int, int> Pair; //Tuplas
-typedef map<Pair, int>    Map; //Diccionarios
+struct CompareByFirst {
+    bool operator()(const Pair& a, const Pair& b) const {
+        if (a.first != b.first) {
+            return a.first > b.first; // Compare first elements
+        }
+        return a.second < b.second; // If first elements are equal, compare second elements
+    }
+};
+typedef map<Pair, int, CompareByFirst>    Map; //Piezas ordenadas de ancho a fino
 typedef pair<Pair, Pair>     Coords; // Posición de una pieza en la solución
 typedef vector<Coords>     VectCoords; //Conjunto de piezas posicionadas
 
 // GLOBALS 
 int W, N; //Anchura del telar y numero de comandas
-Map n; //Dimensiones + numero de piezas
-// int L=0; //Longitud ans parcial
-// int best_L=1; 
-// VectCoords disp = {}; //disposicion de ans parcial/total
-// VectCoords best_disp = {};
+Map n; //Dimensiones -> numero de piezas
+vector<int> areas = {};
 
-// Declaración de funciones
-void exh_search(char** argv, vector<int>& front, VectCoords best_disp, VectCoords disp, int best_L, int L, int k);
-
-// Inicio de cronómetro
+// Inicio de cronómetro (start tiene que ser una variable global)
 auto start = chrono::steady_clock::now();
 
-void read_instance(char** file, int& k) {
+// Declaración de funciones
+void exh_search(char** argv, vector<int> front, VectCoords& best_disp, VectCoords& disp, int& best_L, int L, int f, int& min_f, int k);
+
+double finish_time(){
+  auto end = chrono::steady_clock::now();
+  auto elapsed = chrono::duration_cast<chrono::milliseconds>(end - start);
+  double elapsed_seconds = elapsed.count() / 1000.0;
+  return elapsed_seconds;
 }
 
-void write_ans(char** argv, double elapsed_seconds){
+// Lee la entrada y asigna valor a las variables básicas
+void read_instance(char** file, int& k) {
+  ifstream inp(file[1]);
+  inp >> W >> N;
+  k = N; // Comptador del nivell recursiu
+  int ni, pi, qi;
+  while (N > 0) {
+    inp >> ni >> pi >> qi;
+    // cout <<"entrada "<< ni << " " << pi<< " " << qi<<endl;
+    N -= ni;
+    n[{pi, qi}] = ni;
+    // cout << n[{pi, qi}]<< " " <<ni<<endl;
+  }
+  // std::cout << "W: "<<W<<" N: "<<k<<endl;
+  // for (const auto& p : n){ cout <<n[{p.first.first, p.first.second}]<<" "<< p.first.first << " " <<p.first.second<<endl;}
+
+}
+
+// Escribe el resultado sobre un archivo
+void write_ans(char** argv, double elapsed_seconds, VectCoords& best_disp, int best_L){
+  // Escribe las soluciones encontradas por terminal y en el output file
+  ofstream outp(argv[2]);
+  outp << elapsed_seconds << endl << best_L << endl;
+  cout << elapsed_seconds << endl << best_L << endl;
+  for (Coords bloc : best_disp){
+    outp << bloc.first.first << " " << bloc.first.second << " ";
+    outp << bloc.second.first << " " << bloc.second.second << endl;
+    cout << bloc.first.first << " " << bloc.first.second << " ";
+    cout << bloc.second.first << " " << bloc.second.second << endl;
+  }
+  cout <<endl;
 }
 
 // Retorna true si la pieza es una de las dadas en el inp, sino es el transpuesto
 bool is_original(Pair piece){
+  for (pair<Pair, int> original : n){
+    if (piece == original.first) return true;
+  }
+  return false;
 }
 
-void undo_change(vector<int>& front, VectCoords& disp){
-  Coords pos_piece = disp.back();
-  disp.pop_back();
+// Ordenación segun el segundo elemento de un Pair (la altura)
+bool compareBySecond(const Pair& a, const Pair& b) {
+    return a.second < b.second; // Compare based on the second element
+}
 
-  Pair ul = pos_piece.first;
-  Pair dr = pos_piece.second;
-  Pair piece = {dr.first-ul.first+1, dr.second-ul.second+1};
-
-  for(int j = ul.first ; j <= dr.first; j++){
-    front[j] -= piece.second;
+// Retorna true si el numero de agujeros es mayor que 2 veces el area de una pieza
+bool forat_gran(int f){
+  for (pair<Pair, int> piece : n){
+    if (piece.second > 0 && 2*piece.first.first*piece.first.second< f) return true; 
   }
+  return false;
+}
 
-  if (is_original(piece)){ //Por si la pieza fue rotada
-    n[piece] += 1;
+// Devuelve true si la rama se puede podar
+bool poda(int L, int best_L, int f, int min_f){
+  // Problema: descarta solucines optimas
+  bool poda1 = (L > best_L);
+  bool poda2 = (f > min_f);
+  // bool poda3 = forat_gran(f);
+  // cout << "f: " << f<<endl;
+  // cout << "forat_gran: " << poda3<<endl;
+  return poda1 || poda2;// || poda3;
+  // return L > best_L || f > min_f || forat_gran(f);
+}
+
+// Dado un telero, la anchura de una pieza y una posicion, devuelve si se puede añadir
+bool may_add_here(const vector<int>& front, int a, int i){
+  for (int j = 0; j < a; j++){
+    if (i+j >= W) return false;
+    if (front[i] < front[i+j]) return false;
   }
-  else{
-    Pair orig_piece = {piece.second, piece.first};
-    n[orig_piece] += 1;
+  return true;
+}
+
+// Dado un telero, una pieza y una posición, actualiza el telero para añadir la pieza
+void update_teler(vector<int>& front, Pair piece, int& f, int i){
+  int a = piece.first; int b = piece.second;
+  int pivot = front[i];
+  for (int j=0; j<a; ++j) {
+    f += pivot - front[i+j];
+    front[i+j]= pivot+b;
   }
 }
 
-void add_piece( char** argv, Pair p, vector<int> front, VectCoords& best_disp,
-                VectCoords& disp, int best_L, int L, int k){
-    Pair orig_p = p; //Si la pieza esta rotada, consultar las dimensiones originales en n
-    if (!is_original(p)) orig_p = {p.second, p.first};
-    if(n[orig_p] > 0){
-    int a = p.first;
-    int b = p.second;
-    bool may_add_here = true;
-    
-    for (int i=0; i<=W-a; ++i){ //Mirar cada casilla posible
-      may_add_here = true;
-      int j = 0;
-      while (j <a && may_add_here){ // Si se puede añadir aquí
-        may_add_here = may_add_here && (front[i] >= front[i+j]);
-        ++j;
+
+void add_piece( char** argv, int i, vector<int>& front, VectCoords& best_disp,
+                VectCoords& disp, int& best_L, int L, int f, int& min_f, int k){
+  for(pair<Pair, int> piezas : n){
+    if (piezas.second > 0){
+      Pair p = piezas.first;
+
+      Pair orig_p = p; 
+      if (!is_original(p)) orig_p = {p.second, p.first};
+
+      int a = p.first; int b = p.second;
+      if (may_add_here(front, a, i)){ //Añadir la pieza
+        // cout << "fixed " << i <<endl;
+        n[orig_p] -=1;
+        disp.push_back({{i, front[i]},{i+a-1, front[i]+b-1}});
+        vector<int> new_front = front;
+        update_teler(new_front, p, f, i);
+        exh_search(argv, new_front, best_disp, disp, best_L, *max_element(new_front.cbegin(), new_front.cend()), f, min_f, k-1);
+        // Deshacer los cambios recursivos
+        n[orig_p] +=1; 
+        disp.pop_back();
       }
 
-      if (may_add_here){ //Añadir la pieza
-        n[orig_p] -=1; // Quitar la pieza de que sea libre
+      // Caso reversed
+      a = p.second; b = p.first;
+      if (may_add_here(front, a, i)){ //Añadir la pieza
+        // cout << "fixed " << i <<endl;
+        n[orig_p] -=1;
         disp.push_back({{i, front[i]},{i+a-1, front[i]+b-1}});
-
-        for (int j=0; j<a; ++j) front[i+j]= front[i]+b;
-
-        L = *max_element(front.cbegin(), front.cend());
-        exh_search(argv, front, best_disp, disp, best_L, L, k-1);
-        undo_change(front, disp);
+        vector<int> new_front = front;
+        update_teler(new_front, {a,b}, f, i);
+        exh_search(argv, new_front, best_disp, disp, best_L, *max_element(new_front.cbegin(), new_front.cend()), f, min_f, k-1);
+        // Deshacer los cambios recursivos
+        n[orig_p] +=1; 
+        disp.pop_back();
       }
     }
-  }
+  }   
 }
 
-void exh_search(char** argv, vector<int>& front, VectCoords best_disp, VectCoords disp,
-                 int best_L, int L, int k){
+// f: numero de forats
+void exh_search(char** argv, vector<int> front, VectCoords& best_disp, VectCoords& disp,
+                 int& best_L, int L, int f, int& min_f, int k)
+{
+  // cout << "f: " << f<<endl;
+  // for (int col : front) cout << col <<" ";
+  // cout<<endl;
   if(k==0){ //Si ha añadido todas las piezas 
-    if(L < best_L){
+    if(L < best_L){ 
+      if (f < min_f) min_f = f;
+      cout << "min_f "<< min_f<<endl;
       best_L = L;
       best_disp = disp;
 
       // Mira el tiempo
-      auto end = chrono::steady_clock::now();
-      auto elapsed = chrono::duration_cast<chrono::milliseconds>(end - start);
-      double elapsed_seconds = elapsed.count() / 1000.0;
+      double elapsed_seconds = finish_time();
 
-      write_ans(argv, elapsed_seconds);
+      write_ans(argv, elapsed_seconds, best_disp, best_L);
     }
   }
   else{
-    if(L < best_L){ //poda
-      for(pair<Pair, int> blocs : n){
-        Pair bloc = blocs.first;
-        if(bloc.first == bloc.second){ // Si la pieza es cuadrada
-          add_piece(argv, bloc, front, best_disp, disp, best_L, L, k); // update front, disp
-        }
-        else{
-          add_piece(argv, bloc, front, best_disp, disp, best_L, L, k);
-          //Caso rotado
-          add_piece(argv, {bloc.second, bloc.first}, front, best_disp, disp, best_L, L, k);
-        }
+    if(!poda(L, best_L, f, min_f)){
+
+      vector<Pair> order(front.size());
+      for (int i = 0; i < int(front.size()); ++i) order[i] = {i, front[i]};
+      sort(order.begin(), order.end(), compareBySecond);
+
+      for (Pair pos : order){ //Buscar de arriba a abajo
+        int i = pos.first;
+        add_piece(argv, i, front, best_disp, disp, best_L, L, f, min_f, k);
       }
     }
   }
 }
 
+
+
 int main(int argc, char** argv) {
-  ios_base::sync_with_stdio(false);
 
   // Formato de ejecución
   if (argc == 1) {
@@ -130,23 +209,25 @@ int main(int argc, char** argv) {
     exit(0);
   }
 
-  int k; // Contador recursivo
+  int k; // Numero de piezas por anadir
   assert(argc == 3);
   read_instance(argv, k);
-  
+
   // Calcular una cota superior para realizar podas
-  int best_L = 0;
-  for(pair<Pair, int> bloc : n){
-    best_L += bloc.second * min(bloc.first.first, bloc.first.second);
-  }
+  int best_L = 999999; // Por alguna razón cuando se usa la cota superior a veces no encuentra resultado
+  // for(pair<Pair, int> bloc : n){
+  //   best_L += bloc.second * min(bloc.first.first, bloc.first.second);
+  // }
+  cout << "best L: "<<best_L<<endl;
 
-  // Longitud a la que se ha llegado en cada columna
+  // Altura a la que se ha llegado en cada columna
   vector<int> front(W, 0); 
-  VectCoords best_disp ={}, disp = {};
-  exh_search(argv, front, best_disp, disp, best_L, 0, k);
 
-  auto end = chrono::steady_clock::now();
-  auto elapsed = chrono::duration_cast<chrono::milliseconds>(end - start);
-  double elapsed_seconds = elapsed.count() / 1000.0;
+  VectCoords best_disp ={}, disp = {};
+  int min_f=9999;
+  exh_search(argv, front, best_disp, disp, best_L, 0, 0, min_f, k);
+
+  // Finalización de la busqueda
+  double elapsed_seconds = finish_time();
   cout << "Ha tardat en trobar totes les combinacions: " << elapsed_seconds<< endl;
 }
