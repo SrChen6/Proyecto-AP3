@@ -14,7 +14,7 @@ typedef pair<int, int> Pair; //Tuplas
 struct CompareByFirst {
     bool operator()(const Pair& a, const Pair& b) const {
         if (a.first != b.first) {
-            return a.first < b.first; // Compare first elements
+            return a.first > b.first; // Compare first elements
         }
         return a.second < b.second; // If first elements are equal, compare second elements
     }
@@ -68,10 +68,7 @@ void write_ans(char** argv, double elapsed_seconds){
 // }
 
 bool compareBySecond(const pair<int, int>& a, const pair<int, int>& b) {
-    if (a.second != b.second){
-      return a.second < b.second;
-    } // Compare based on the second element
-    else return a.first < b.first;
+    return a.second < b.second; // Compare based on the second element
 }
 
 void greedy(char** argv){

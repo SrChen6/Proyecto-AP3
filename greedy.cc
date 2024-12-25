@@ -15,7 +15,7 @@ typedef pair<int, int> Pair; //Tuplas
 struct CompareByFirst {
     bool operator()(const Pair& a, const Pair& b) const {
         if (a.first != b.first) {
-            return a.first < b.first; // Compare first elements
+            return a.first > b.first; // Compare first elements
         }
         return a.second < b.second; // If first elements are equal, compare second elements
     }
@@ -65,17 +65,9 @@ void write_ans(char** argv, double elapsed_seconds){
   cout <<endl;
 }
 
-// void add_piece(Pair p, vector<int> front){
-//   n[p] -=1; // Quitar la pieza de que sea libre
-//   int a = p.first
-  
-//   for (int i=0; i<=W-a, ++i){
-//     if (std::all_of(front.cbegin(), front.cend(), [](int j) { return j <=i; }))
-//   }
-// }
-
 bool compareBySecond(const pair<int, int>& a, const pair<int, int>& b) {
-    return a.second < b.second; // Compare based on the second element
+  if (a.second != b.second) return a.second < b.second; // Compare based on the second element
+  return a.first < b.first;
 }
 
 void createVectorOfMap(){
@@ -98,6 +90,14 @@ bool smallHere( Pair p , vector<int> front){
   return max_front >= min_front + min(p.first, p.second);
 }
 
+bool may_add_here(const vector<int>& front, int a, int i){
+  for (int j = 0; j < a; j++){
+    if (i+j >= W) return false;
+    if (front[i] < front[i+j]) return false;
+  }
+  return true;
+}
+
 void greedy(char** argv){
   vector<int> front(W, 0); 
   int idx = 0;
@@ -107,33 +107,26 @@ void greedy(char** argv){
     // cout<< idx << " " << p.first <<" "<< p.second <<endl;
 
     if (!(idx%2) || ( idx%2 && smallHere(p, front))) {
-    bool been_put = false;
+      bool been_put = false;
 
-    int a = p.first; int b = p.second;
+      int a = p.first; int b = p.second;
 
-    vector<Pair> order(front.size());
-    for (int i = 0; i < int(front.size()); ++i) order[i] = {i, front[i]};
-    // Ordenar de más bajo a más alto
-    sort(order.begin(), order.end(), compareBySecond);  
+      vector<Pair> order(front.size());
+      for (int i = 0; i < int(front.size()); ++i) order[i] = {i, front[i]};
+      // Ordenar de más bajo a más alto
+      sort(order.begin(), order.end(), compareBySecond);  
 
-    for (Pair pos : order){ //Buscar de debajo a arriba
-      int i = pos.first;
-      bool may_add_here = true;
-      int j = 0;
-      while (j <a && may_add_here){ // Si se puede añadir aquí
-        may_add_here = may_add_here && (front[i] >= front[i+j]) && i <= W-a;
-        ++j;
+      for (Pair pos : order){ //Buscar de debajo a arriba
+        int i = pos.first;
+
+        if (!been_put && may_add_here(front, a, i)){ //Añadir la pieza
+          disp.push_back({{i, front[i]},{i+a-1, front[i]+b-1}});
+          int pivot = front[i];
+          for (int j=0; j<a; ++j) front[i+j] = pivot + b;
+          been_put = true;
+        }
+
       }
-
-      if (!been_put && may_add_here){ //Añadir la pieza
-        disp.push_back({{i, front[i]},{i+a-1, front[i]+b-1}});
-        vector<int> new_front = front;
-        for (int j=0; j<a; ++j) new_front[i+j]= front[i]+b;
-        front = new_front;
-        been_put = true;
-      }
-
-    }
     }
     // Si se decide no añadir, se guarda para ponerla despues
     else n_res.push_back({p.first, p.second}); 
@@ -144,37 +137,31 @@ void greedy(char** argv){
   // Añadimos las restantes
   for (Pair p: n_res){
 
-    if (!(idx%2) || ( idx%2 && smallHere(p, front))) {
-    // cout<< idx << " " << p.first <<" "<< p.second <<endl;
-    bool been_put = false;
+    if (true) {//!(idx%2) || ( idx%2 && smallHere(p, front))
+      // cout<< idx << " " << p.first <<" "<< p.second <<endl;
+      bool been_put = false;
 
-    int a = p.first; int b = p.second;
+      int a = p.first; int b = p.second;
 
-    vector<Pair> order(front.size());
-    for (int i = 0; i < int(front.size()); ++i) order[i] = {i, front[i]};
-    // Ordenar de más bajo a más alto
-    sort(order.begin(), order.end(), compareBySecond);  
+      vector<Pair> order(front.size());
+      for (int i = 0; i < int(front.size()); ++i) order[i] = {i, front[i]};
+      // Ordenar de más bajo a más alto
+      sort(order.begin(), order.end(), compareBySecond);  
 
-    for (Pair pos : order){ //Buscar de debajo a arriba
-      int i = pos.first;
-      bool may_add_here = true;
-      int j = 0;
-      while (j <a && may_add_here){ // Si se puede añadir aquí
-        may_add_here = may_add_here && (front[i] >= front[i+j]) && i <= W-a;
-        ++j;
+      for (Pair pos : order){ //Buscar de debajo a arriba
+        int i = pos.first;
+        been_put = false;
+
+        if (!been_put && may_add_here(front, a, i)){ //Añadir la pieza
+          disp.push_back({{i, front[i]},{i+a-1, front[i]+b-1}});
+          int pivot = front[i];
+          for (int j=0; j<a; ++j) front[i+j] = pivot + b;
+          been_put = true;
+        }
+
       }
-
-      if (!been_put && may_add_here){ //Añadir la pieza
-        disp.push_back({{i, front[i]},{i+a-1, front[i]+b-1}});
-        vector<int> new_front = front;
-        for (int j=0; j<a; ++j) new_front[i+j]= front[i]+b;
-        front = new_front;
-        been_put = true;
-      }
-
     }
-    }
-    }
+  }
 
 
   L = *max_element(front.cbegin(), front.cend());
@@ -194,10 +181,6 @@ int main(int argc, char** argv) {
   assert(argc == 3);
   read_instance(argv);
   
-  // Calcular una cota superior para realizar podas
-  // for(pair<Pair, int> bloc : n){
-  //   L += bloc.second * min(bloc.first.first, bloc.first.second);
-  // }
 
   // Longitud a la que se ha llegado en cada columna
   createVectorOfMap();
@@ -210,9 +193,6 @@ int main(int argc, char** argv) {
 
   write_ans(argv, elapsed_seconds);
 
-  // Finalización de la busqueda
-  // auto end = chrono::steady_clock::now();
-  // auto elapsed = chrono::duration_cast<chrono::milliseconds>(end - start);
-  // double elapsed_seconds = elapsed.count() / 1000.0;
+
   cout << "Ha tardat en executar el greedy: " << elapsed_seconds<< endl;
 }
