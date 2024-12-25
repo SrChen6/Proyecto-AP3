@@ -29,7 +29,7 @@ vector<int> areas = {};
 auto start = chrono::steady_clock::now();
 
 // Declaración de funciones
-void exh_search(char** argv, vector<int> front, VectCoords& best_disp, VectCoords& disp, int& best_L, int L, int f, int& min_f, int k);
+void exh_search(char** argv, vector<int> front, VectCoords& best_disp, VectCoords& disp, int& best_L, int L, Pair f, int k);
 
 double finish_time(){
   auto end = chrono::steady_clock::now();
@@ -85,15 +85,15 @@ bool compareBySecond(const Pair& a, const Pair& b) {
 }
 
 // Retorna true si el numero de agujeros es mayor que 2 veces el area de una pieza
-bool forat_gran(int f){
+bool forat_gran(Pair f){
   for (pair<Pair, int> piece : n){
-    if (piece.second > 0 && 2*piece.first.first*piece.first.second< f) return true; 
+    if (piece.second > 0 && piece.first.first < f.first && piece.first.second < f.second) return true; 
   }
   return false;
 }
 
 // Devuelve true si la rama se puede podar
-bool poda(int L, int best_L, int f, int min_f){
+bool poda(int L, int best_L, Pair f){
   // Problema: descarta solucines optimas
   bool poda1 = (L >= best_L);
   // bool poda2 = (f > min_f);
@@ -114,19 +114,24 @@ bool may_add_here(const vector<int>& front, int a, int i){
 }
 
 // Dado un telero, una pieza y una posición, actualiza el telero para añadir la pieza
-void update_teler(vector<int>& front, Pair piece, int& f, int i){
+void update_teler(vector<int>& front, Pair piece, Pair& f, int i){
   int a = piece.first; int b = piece.second;
   int pivot = front[i];
-  for (int j=0; j<a; ++j) {
-    // cout<< i+j<<endl;
-    f += pivot - front[i+j];
+  //Calcula las dimensiones del agujero
+  f.first += pivot - front[i];
+  f.second += 1;
+  front[i] = pivot + b;
+  for (int j=1; j<a; ++j) {
     front[i+j]= pivot+b;
+    f.second += 1;
+    // cout<< i+j<<endl;
+    if (front[i+j] > front[i+j-1]) f.first = pivot - front[i+j];
   }
 }
 
 
 void add_piece( char** argv, int i, vector<int>& front, VectCoords& best_disp,
-                VectCoords& disp, int& best_L, int L, int f, int& min_f, int k){
+                VectCoords& disp, int& best_L, int L, Pair f, int k){
   for(pair<Pair, int> piezas : n){
     if (piezas.second > 0){
       Pair p = piezas.first;
@@ -142,9 +147,9 @@ void add_piece( char** argv, int i, vector<int>& front, VectCoords& best_disp,
 
         vector<int> new_front = front;
         
-        int new_f = f;
+        Pair new_f = {0,0};
         update_teler(new_front, p, new_f, i);
-        exh_search(argv, new_front, best_disp, disp, best_L, *max_element(new_front.cbegin(), new_front.cend()), new_f, min_f, k-1);
+        exh_search(argv, new_front, best_disp, disp, best_L, *max_element(new_front.cbegin(), new_front.cend()), new_f, k-1);
         
         // Deshacer los cambios recursivos
         n[orig_p] +=1; 
@@ -159,10 +164,10 @@ void add_piece( char** argv, int i, vector<int>& front, VectCoords& best_disp,
         disp.push_back({{i, front[i]},{i+a-1, front[i]+b-1}});
 
         vector<int> new_front = front;
-        int new_f = f;
+        Pair new_f = f;
         update_teler(new_front, {a,b}, new_f, i);
         
-        exh_search(argv, new_front, best_disp, disp, best_L, *max_element(new_front.cbegin(), new_front.cend()), new_f, min_f, k-1);
+        exh_search(argv, new_front, best_disp, disp, best_L, *max_element(new_front.cbegin(), new_front.cend()), new_f, k-1);
         
         // Deshacer los cambios recursivos
         n[orig_p] +=1; 
@@ -174,15 +179,13 @@ void add_piece( char** argv, int i, vector<int>& front, VectCoords& best_disp,
 
 // f: numero de forats
 void exh_search(char** argv, vector<int> front, VectCoords& best_disp, VectCoords& disp,
-                 int& best_L, int L, int f, int& min_f, int k)
+                 int& best_L, int L, Pair f, int k)
 {
   // cout << "f: " << f<<endl;
   // for (int col : front) cout << col <<" ";
   // cout<<endl;
   if(k==0){ //Si ha añadido todas las piezas 
     if(L < best_L){ 
-      if (f < min_f) min_f = f;
-      cout << "min_f "<< min_f<<endl;
       best_L = L;
       best_disp = disp;
 
@@ -194,7 +197,7 @@ void exh_search(char** argv, vector<int> front, VectCoords& best_disp, VectCoord
   }
 
   else{
-    if(!poda(L, best_L, f, min_f)){
+    if(!poda(L, best_L, f)){
     if (L == best_L){
     double elapsed_seconds = finish_time();
     cout << "ha trobat un equivalent al segon "<<elapsed_seconds<<endl;
@@ -205,7 +208,7 @@ void exh_search(char** argv, vector<int> front, VectCoords& best_disp, VectCoord
 
       for (Pair pos : order){ //Buscar de arriba a abajo
         int i = pos.first;
-        add_piece(argv, i, front, best_disp, disp, best_L, L, f, min_f, k);
+        add_piece(argv, i, front, best_disp, disp, best_L, L, f, k);
       }
     }
   }
@@ -237,8 +240,7 @@ int main(int argc, char** argv) {
   vector<int> front(W, 0); 
 
   VectCoords best_disp ={}, disp = {};
-  int min_f=9999;
-  exh_search(argv, front, best_disp, disp, best_L, 0, 0, min_f, k);
+  exh_search(argv, front, best_disp, disp, best_L, 0, {0,0}, k);
 
   // Finalización de la busqueda
   double elapsed_seconds = finish_time();
