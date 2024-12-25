@@ -10,10 +10,14 @@ using namespace std;
 typedef pair<int, int> Pair; //Tuplas
 struct CompareByFirst {
     bool operator()(const Pair& a, const Pair& b) const {
-        if (a.first != b.first) {
-            return a.first > b.first; // Compare first elements
+        // if (a.first != b.first) {
+        //     return a.first > b.first; // Compare first elements
+        // }
+        // return a.second < b.second; // If first elements are equal, compare second elements
+        if (a.first*a.second != b.first*b.second) {
+            return a.first*a.second > b.first*b.second; // Compare first elements
         }
-        return a.second < b.second; // If first elements are equal, compare second elements
+        return a.first > b.first; // If first elements are equal, compare second elements
     }
 };
 typedef map<Pair, int, CompareByFirst>    Map; //Piezas ordenadas de ancho a fino
@@ -92,16 +96,31 @@ bool forat_gran(Pair f){
   return false;
 }
 
+// Si añadiendo las piezas como líquidos se sobrepasa best_L, se poda
+bool no_millora(const vector<int>& front, int L, int best_L){
+  int area_piezas = 0;
+  for (pair<Pair, int> piece : n){
+    for (int i = 0; i < piece.second; i++){
+      area_piezas += piece.first.first*piece.first.second;
+    }
+  }
+
+  int area_fins_L = 0;
+  for (int i = 0; i < W; i++){
+    area_fins_L += L - front[i];
+  }
+  
+  int area_remain = area_piezas - area_fins_L;
+
+  return L + area_remain/W >= best_L;
+}
+
 // Devuelve true si la rama se puede podar
-bool poda(int L, int best_L, Pair f){
+bool poda(const vector<int>& front, int L, int best_L, Pair f){
   // Problema: descarta solucines optimas
-  bool poda1 = (L >= best_L);
-  // bool poda2 = (f > min_f);
+  bool poda1 = no_millora(front, L, best_L);
   bool poda3 = forat_gran(f);
-  // cout << "f: " << f<<endl;
-  // cout << "forat_gran: " << poda3<<endl;
-  return poda1 || poda3 ;//|| poda2;// ;
-  // return L > best_L || f > min_f || forat_gran(f);
+  return L >= best_L || poda1 || poda3 ;//|| poda2;// ;
 }
 
 // Dado un telero, la anchura de una pieza y una posicion, devuelve si se puede añadir
@@ -164,10 +183,10 @@ void add_piece( char** argv, int i, vector<int>& front, VectCoords& best_disp,
         disp.push_back({{i, front[i]},{i+a-1, front[i]+b-1}});
 
         vector<int> new_front = front;
-        Pair new_f = f;
-        update_teler(new_front, {a,b}, new_f, i);
+        // Pair new_f = f;
+        update_teler(new_front, {a,b}, f, i);
         
-        exh_search(argv, new_front, best_disp, disp, best_L, *max_element(new_front.cbegin(), new_front.cend()), new_f, k-1);
+        exh_search(argv, new_front, best_disp, disp, best_L, *max_element(new_front.cbegin(), new_front.cend()), f, k-1);
         
         // Deshacer los cambios recursivos
         n[orig_p] +=1; 
@@ -181,9 +200,11 @@ void add_piece( char** argv, int i, vector<int>& front, VectCoords& best_disp,
 void exh_search(char** argv, vector<int> front, VectCoords& best_disp, VectCoords& disp,
                  int& best_L, int L, Pair f, int k)
 {
+  // cout << "L: " <<L<<" "<<k<<endl;
   // cout << "f: " << f<<endl;
   // for (int col : front) cout << col <<" ";
   // cout<<endl;
+
   if(k==0){ //Si ha añadido todas las piezas 
     if(L < best_L){ 
       best_L = L;
@@ -194,10 +215,11 @@ void exh_search(char** argv, vector<int> front, VectCoords& best_disp, VectCoord
 
       write_ans(argv, elapsed_seconds, best_disp, best_L);
     }
+    // else if (L == best_L) cout << "Ha trobat una solucio equivalent"<<endl;
   }
 
   else{
-    if(!poda(L, best_L, f)){
+    if(!poda(front, L, best_L, f)){
     if (L == best_L){
     double elapsed_seconds = finish_time();
     cout << "ha trobat un equivalent al segon "<<elapsed_seconds<<endl;
