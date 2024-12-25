@@ -120,7 +120,7 @@ bool poda(const vector<int>& front, int L, int best_L, Pair f){
   // Problema: descarta solucines optimas
   bool poda1 = no_millora(front, L, best_L);
   bool poda3 = forat_gran(f);
-  return L >= best_L || poda1 || poda3 ;//|| poda2;// ;
+  return L >= best_L || poda1 || poda3 ;
 }
 
 // Dado un telero, la anchura de una pieza y una posicion, devuelve si se puede añadir
@@ -204,26 +204,20 @@ void exh_search(char** argv, vector<int> front, VectCoords& best_disp, VectCoord
   // cout << "f: " << f<<endl;
   // for (int col : front) cout << col <<" ";
   // cout<<endl;
+  if(!poda(front, L, best_L, f)){
+    if(k==0){ //Si ha añadido todas las piezas 
+      if(L < best_L){ 
+        best_L = L;
+        best_disp = disp;
 
-  if(k==0){ //Si ha añadido todas las piezas 
-    if(L < best_L){ 
-      best_L = L;
-      best_disp = disp;
+        // Mira el tiempo
+        double elapsed_seconds = finish_time();
 
-      // Mira el tiempo
-      double elapsed_seconds = finish_time();
-
-      write_ans(argv, elapsed_seconds, best_disp, best_L);
+        write_ans(argv, elapsed_seconds, best_disp, best_L);
+      }
+      // else if (L == best_L) cout << "Ha trobat una solucio equivalent"<<endl;
     }
-    // else if (L == best_L) cout << "Ha trobat una solucio equivalent"<<endl;
-  }
-
-  else{
-    if(!poda(front, L, best_L, f)){
-    if (L == best_L){
-    double elapsed_seconds = finish_time();
-    cout << "ha trobat un equivalent al segon "<<elapsed_seconds<<endl;
-  }
+    else{ 
       vector<Pair> order(front.size());
       for (int i = 0; i < int(front.size()); ++i) order[i] = {i, front[i]};
       sort(order.begin(), order.end(), compareBySecond);
