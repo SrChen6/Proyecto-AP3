@@ -72,7 +72,7 @@ bool compareBySecond(const pair<int, int>& a, const pair<int, int>& b) {
 }
 
 void greedy(char** argv){
-  vector<int> front(W, 0); 
+  vector<int> front(W, 0);
   for(pair<Pair, int> blocs : n){
     for (int repes = 0; repes < blocs.second; repes++){
       bool been_put = false;
@@ -112,6 +112,7 @@ void greedy(char** argv){
       }
     }
   }
+  cout << int(disp.size()) << endl;
   L = *max_element(front.cbegin(), front.cend());
 }
 

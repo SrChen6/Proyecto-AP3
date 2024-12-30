@@ -101,10 +101,8 @@ bool may_add_here(const vector<int>& front, int a, int i){
 void greedy(char** argv){
   vector<int> front(W, 0); 
   int idx = 0;
-  // cout << "greed start" << endl;
   // Primera pasada colocando piezas grandes y pequeñas alternadamente
   for(Pair p : blocs_to_put){
-    // cout<< idx << " " << p.first <<" "<< p.second <<endl;
 
     if (!(idx%2) || ( idx%2 && smallHere(p, front))) {
       bool been_put = false;
@@ -127,6 +125,7 @@ void greedy(char** argv){
         }
 
       }
+      
     }
     // Si se decide no añadir, se guarda para ponerla despues
     else n_res.push_back({p.first, p.second}); 
@@ -135,38 +134,34 @@ void greedy(char** argv){
   }
 
   // Añadimos las restantes
+
   for (Pair p: n_res){
 
-    if (true) {//!(idx%2) || ( idx%2 && smallHere(p, front))
-      // cout<< idx << " " << p.first <<" "<< p.second <<endl;
-      bool been_put = false;
+    bool been_put = false;
 
-      int a = p.first; int b = p.second;
+    int a = p.first; int b = p.second;
 
-      vector<Pair> order(front.size());
-      for (int i = 0; i < int(front.size()); ++i) order[i] = {i, front[i]};
-      // Ordenar de más bajo a más alto
-      sort(order.begin(), order.end(), compareBySecond);  
+    vector<Pair> order(front.size());
+    for (int i = 0; i < int(front.size()); ++i) order[i] = {i, front[i]};
+    // Ordenar de más bajo a más alto
+    sort(order.begin(), order.end(), compareBySecond); 
 
-      for (Pair pos : order){ //Buscar de debajo a arriba
-        int i = pos.first;
-        been_put = false;
+    for (Pair pos : order){ //Buscar de debajo a arriba
+      int i = pos.first;
 
-        if (!been_put && may_add_here(front, a, i)){ //Añadir la pieza
-          disp.push_back({{i, front[i]},{i+a-1, front[i]+b-1}});
-          int pivot = front[i];
-          for (int j=0; j<a; ++j) front[i+j] = pivot + b;
-          been_put = true;
-        }
-
+      if (!been_put && may_add_here(front, a, i)){ //Añadir la pieza
+        disp.push_back({{i, front[i]},{i+a-1, front[i]+b-1}});
+        int pivot = front[i];
+        for (int j=0; j<a; ++j) front[i+j] = pivot + b;
+        been_put = true;
       }
-    }
-  }
 
+    }
+  
+  }
 
   L = *max_element(front.cbegin(), front.cend());
 
-  // cout << "greed end" << endl;
 }
 
 int main(int argc, char** argv) {
@@ -181,7 +176,6 @@ int main(int argc, char** argv) {
   assert(argc == 3);
   read_instance(argv);
   
-
   // Longitud a la que se ha llegado en cada columna
   createVectorOfMap();
   greedy(argv);
@@ -192,7 +186,6 @@ int main(int argc, char** argv) {
   double elapsed_seconds = elapsed.count() / 1000.0;
 
   write_ans(argv, elapsed_seconds);
-
 
   cout << "Ha tardat en executar el greedy: " << elapsed_seconds<< endl;
 }
