@@ -65,15 +65,6 @@ void write_ans(char** argv, double elapsed_seconds){
   cout <<endl;
 }
 
-// void add_piece(Pair p, vector<int> front){
-//   n[p] -=1; // Quitar la pieza de que sea libre
-//   int a = p.first
-  
-//   for (int i=0; i<=W-a, ++i){
-//     if (std::all_of(front.cbegin(), front.cend(), [](int j) { return j <=i; }))
-//   }
-// }
-
 bool compareBySecond(const pair<int, int>& a, const pair<int, int>& b) {
     return a.second < b.second; // Compare based on the second element
 }
@@ -85,6 +76,7 @@ int phi_L(vector<Pair> n_list){
   vector<int> front(W, 0);
   for(Pair p: n_list){
       bool been_put = false;
+      int delta = 0; // incremento desde el front a colocar la pieza
 
       int a = p.first; int b = p.second;
 
@@ -93,25 +85,29 @@ int phi_L(vector<Pair> n_list){
       // Ordenar de más bajo a más alto
       sort(order.begin(), order.end(), compareBySecond);  
 
-      for (Pair pos : order){ //Buscar de debajo a arriba
-        int i = pos.first;
-        bool may_add_here = true;
-        int j = 0;
-        while (j <a && may_add_here){ // Si se puede añadir aquí
-          may_add_here = may_add_here && (front[i] >= front[i+j]) && i <= W-a;
-          ++j;
-        }
+      while (!been_put) {
 
-        if (!been_put && may_add_here){ //Añadir la pieza
-          disp.push_back({{i, front[i]},{i+a-1, front[i]+b-1}});
-          vector<int> new_front = front;
-          // cout << a<<" "<<b<<endl;
-          for (int j=0; j<a; ++j) new_front[i+j]= front[i]+b;
-          front = new_front;
-          been_put = true;
+        for (Pair pos : order){ // Buscar de debajo a arriba
+          int i = pos.first;
+          bool may_add_here = true;
+          int j = 0;
+          while (j <a && may_add_here){ // Si se puede añadir aquí
+            may_add_here = may_add_here && (front[i]+delta >= front[i+j]) && i <= W-a;
+            ++j;
+          }
+
+          if (!been_put && may_add_here){ //Añadir la pieza
+            disp.push_back({{i, front[i]+delta},{i+a-1, front[i]+b-1+delta}});
+            vector<int> new_front = front;
+            // cout << a<<" "<<b<<endl;
+            for (int j=0; j<a; ++j) new_front[i+j]= front[i]+b+delta;
+            front = new_front;
+            been_put = true;
+          }
         }
+        ++delta;
       }
-    cout << been_put << endl;
+    cout << a << b << " " << been_put <<endl ;
   }
   cout << int(disp.size()) << endl;
   L = *max_element(front.cbegin(), front.cend());
