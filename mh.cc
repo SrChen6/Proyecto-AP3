@@ -111,7 +111,7 @@ int phi_L(vector<Pair> n_list){
           been_put = true;
         }
       }
-    
+    cout << been_put << endl;
   }
   cout << int(disp.size()) << endl;
   L = *max_element(front.cbegin(), front.cend());

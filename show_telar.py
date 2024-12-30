@@ -1,9 +1,12 @@
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
+from matplotlib import animation
+
+
+fig, ax = plt.subplots()
 
 
 def show_telar(rectangles):
-    fig, ax = plt.subplots()
     for i, rect in enumerate(rectangles):
         xtl, ytl, xbr, ybr = rect
         # Ensure width and height are positive
@@ -42,7 +45,7 @@ def show_telar(rectangles):
 
     ax.set_xlim(x_min, x_max)
     ax.set_ylim(0, y_max)
-    print(x_max)
+    # print(x_max)
     # Set ticks on the x and y axes
     ax.set_xticks(range(x_min, x_max + 1))  # Set x ticks
     ax.set_yticks(range(0, y_max + 1))  # Set y ticks
@@ -57,11 +60,31 @@ def show_telar(rectangles):
     )  # Vertical line at x = x_max - 1
 
     plt.gca().set_aspect("equal", adjustable="box")  # Keep aspect ratio
-    plt.show()
+
+
+def update(n):
+    plt.cla()
+    show_telar(rectangles[: n + 1])
 
 
 # Example usage:
 with open("output.txt", "r") as file:
     rectangles = [tuple(map(int, line.split())) for line in file.readlines()[2:]]
 print("num rectangles :", len(rectangles))
+
+fig.tight_layout()
+
+ani = animation.FuncAnimation(
+    fig,
+    update,
+    blit=False,
+    frames=len(rectangles),
+    interval=100,
+    repeat=True,
+    repeat_delay=2000,
+)
+plt.show()
+
+fig, ax = plt.subplots()
 show_telar(rectangles)
+plt.show()
