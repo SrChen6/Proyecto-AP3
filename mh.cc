@@ -111,9 +111,9 @@ int fitness(char** argv, Elem action){
   vector<Pair> n_list = act(action) ;
   disp = {};
 
-  cout << "testing ";
-  for( Pair p: action) cout << p.first << p.second << " ";
-  cout << endl;
+  // cout << "testing ";
+  // for( Pair p: action) cout << p.first << p.second << " ";
+  // cout << endl;
 
   for(Pair p: n_list){
       bool been_put = false;
@@ -160,12 +160,17 @@ int fitness(char** argv, Elem action){
 
 Popula selectParents(char** argv, Popula P, int numSelected ){
   vector<Pair> order(P.size());
-  vector<Elem> out(numSelected);
+  vector<Elem> out = {};
+  int n = int(P.size());
+  int idx = 0;
 
-  for (int i = 0; i < int(P.size()); ++i) order[i] = {i, fitness(argv, P[i])};
+  for (int i = 0; i < n; ++i) order[i] = {i, fitness(argv, P[i])};
   sort(order.begin(), order.end(), compareBySecond);
-  // TODO debería ser random no determinista
-  for (int j = 0; j < int(out.size()); ++j) out[j] = P[order[j].first];
+
+  while (int(out.size()) < min(numSelected, n) ){
+    if ( rand()%(2*idx+3) == 0) out.push_back( P[order[idx%n].first] );
+    ++idx;
+  }
   return out;
 }
 
@@ -228,6 +233,8 @@ Popula recombine(Popula P){
 Popula mutate(Popula P, int prob){
   Popula out(int(P.size()));
   int L = int(P[0].size());
+  int r1, r2;
+  Pair hold;
 
   for (int i=0; i<int(P.size()); ++i){
     Elem e(L);
@@ -235,6 +242,16 @@ Popula mutate(Popula P, int prob){
       if (rand()%prob == 0) e[k] = {P[i][k].first, (1+P[i][k].second)%2};
       else e[k] = P[i][k];
     }
+    for (int j=0; j<50; ++j){
+      if (rand()%prob == 0){
+        r1 = rand()%L; r2 = rand()%L;
+        while (r1 == r2) r2 = rand()%L;
+        hold = e[r1]; 
+        e[r1] = e[r2]; 
+        e[r2] = hold; 
+      }
+    }
+
     out[i] = e;
   }
   return out;
@@ -259,10 +276,10 @@ void metah(char** argv){
   Pop.push_back(mutate({Rever}, 2)[0]);
 
 
-  for (int i=0; i<10; ++i){
+  while (1){
     Pop = recombine(Pop);
-    Pop = mutate(Pop, 50);
-    Pop = selectParents(argv, Pop, 4);
+    Pop = mutate(Pop, 20);
+    Pop = selectParents(argv, Pop, 25);
   }
 
   // Ident = {{0,0}, {1,0}, {2,1}, {3,1}, {4,0}, {5,1}, {6,1}, {7,1}, {8,1}, {9,1},
