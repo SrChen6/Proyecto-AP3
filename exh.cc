@@ -7,34 +7,33 @@
 #include <algorithm>
 using namespace std;
 
-typedef pair<int, int> Pair; //Tuplas
-struct CompareByFirst {
+typedef pair<int, int> Pair; 
+//Piezas ordenadas de grande a pequeño
+struct AreaDescendiente {
     bool operator()(const Pair& a, const Pair& b) const {
-        // if (a.first != b.first) {
-        //     return a.first > b.first; // Compare first elements
-        // }
-        // return a.second < b.second; // If first elements are equal, compare second elements
         if (a.first*a.second != b.first*b.second) {
-            return a.first*a.second > b.first*b.second; // Compare first elements
+            return a.first*a.second > b.first*b.second; 
         }
-        return a.first > b.first; // If first elements are equal, compare second elements
+        return a.first > b.first; // Si las areas son las mismas, se priorizan las piezas finas
     }
 };
-typedef map<Pair, int, CompareByFirst>    Map; //Piezas ordenadas de ancho a fino
-typedef pair<Pair, Pair>     Coords; // Posición de una pieza en la solución
+typedef map<Pair, int, AreaDescendiente>    Map; //Dimensiones y numero de repeticiones
+typedef pair<Pair, Pair>     Coords; // Posición de una pieza
 typedef vector<Coords>     VectCoords; //Conjunto de piezas posicionadas
 
 // GLOBALS 
 int W, N; //Anchura del telar y numero de comandas
 Map n; //Dimensiones -> numero de piezas
-vector<int> areas = {};
 
 // Inicio de cronómetro
 auto start = chrono::steady_clock::now();
 
-// Declaración de funciones
-void exh_search(char** argv, vector<int> front, VectCoords& best_disp, VectCoords& disp, int& best_L, int L, Pair f, int k);
 
+// Dada una solución parcial del telar, busca recursivamente la mejor distribución 
+// con todas las piezas añadidas y escribe la mejor solución
+void exh_search(char** argv, vector<int> front, VectCoords& best_disp, VectCoords& disp, int& best_L, int L, Pair aguj, int k);
+
+// Devuelve el tiempo transcurrido desde el inicio de la ejecución
 double finish_time(){
   auto end = chrono::steady_clock::now();
   auto elapsed = chrono::duration_cast<chrono::milliseconds>(end - start);
@@ -42,40 +41,32 @@ double finish_time(){
   return elapsed_seconds;
 }
 
-// Lee la entrada y asigna valor a las variables básicas
-void read_instance(char** file, int& k) {
+// Lee la entrada y asigna valor a las variables globales
+int read_instance(char** file) {
   ifstream inp(file[1]);
   inp >> W >> N;
-  k = N; // Comptador del nivell recursiu
+  int k = N;
   int ni, pi, qi;
   while (N > 0) {
     inp >> ni >> pi >> qi;
-    // cout <<"entrada "<< ni << " " << pi<< " " << qi<<endl;
     N -= ni;
     n[{pi, qi}] = ni;
-    // cout << n[{pi, qi}]<< " " <<ni<<endl;
   }
-  // std::cout << "W: "<<W<<" N: "<<k<<endl;
-  // for (const auto& p : n){ cout <<n[{p.first.first, p.first.second}]<<" "<< p.first.first << " " <<p.first.second<<endl;}
-
+  return k;
 }
 
-// Escribe el resultado sobre un archivo
+// Escribe el resultado en el archivo especificado en argv[2]
 void write_ans(char** argv, double elapsed_seconds, VectCoords& best_disp, int best_L){
   // Escribe las soluciones encontradas por terminal y en el output file
   ofstream outp(argv[2]);
   outp << elapsed_seconds << endl << best_L << endl;
-  cout << elapsed_seconds << endl << best_L << endl;
   for (Coords bloc : best_disp){
     outp << bloc.first.first << " " << bloc.first.second << " ";
     outp << bloc.second.first << " " << bloc.second.second << endl;
-    cout << bloc.first.first << " " << bloc.first.second << " ";
-    cout << bloc.second.first << " " << bloc.second.second << endl;
   }
-  cout <<endl;
 }
 
-// Retorna true si la pieza es una de las dadas en el inp, sino es el transpuesto
+// Devuelve true si la pieza es una de las dadas en el input, sino es el transpuesto
 bool is_original(Pair piece){
   for (pair<Pair, int> original : n){
     if (piece == original.first) return true;
@@ -84,147 +75,132 @@ bool is_original(Pair piece){
 }
 
 // Ordenación segun el segundo elemento de un Pair (la altura)
-bool compareBySecond(const Pair& a, const Pair& b) {
-    return a.second < b.second; // Compare based on the second element
+bool AscendingHeight(const Pair& a, const Pair& b) {
+    return a.second < b.second;
 }
 
-// Retorna true si el numero de agujeros es mayor que 2 veces el area de una pieza
-bool forat_gran(Pair f){
+// Devuelve true si en el agujero se puede añadir alguna de las piezas faltantes
+bool big_hole(Pair aguj){
   for (pair<Pair, int> piece : n){
-    if (piece.second > 0 && piece.first.first < f.first && piece.first.second < f.second) return true; 
+    if (piece.second > 0 && piece.first.first < aguj.first && piece.first.second < aguj.second) return true; 
   }
   return false;
 }
 
-// Si añadiendo las piezas como líquidos se sobrepasa best_L, se poda
-bool no_millora(const vector<int>& front, int L, int best_L){
+// Devuelve true si, añadiendo las fiezas faltantes como líquidos, la solucion parcial
+// no puede superar la mejor solución hasta el momento
+bool cant_be_better(const vector<int>& front, int L, int best_L){
+  // Calcula el area de las piezas faltantes
   int area_piezas = 0;
   for (pair<Pair, int> piece : n){
     for (int i = 0; i < piece.second; i++){
       area_piezas += piece.first.first*piece.first.second;
     }
   }
-
-  int area_fins_L = 0;
+  // Calcula el area desde debajo de front hasta L
+  int area_hasta_L = 0;
   for (int i = 0; i < W; i++){
-    area_fins_L += L - front[i];
+    area_hasta_L += L - front[i];
   }
-  
-  int area_remain = area_piezas - area_fins_L;
-
-  return L + area_remain/W >= best_L;
+  return L + (area_piezas - area_hasta_L)/W >= best_L;
 }
 
 // Devuelve true si la rama se puede podar
-bool poda(const vector<int>& front, int L, int best_L, Pair f){
-  // Problema: descarta solucines optimas
-  bool poda1 = no_millora(front, L, best_L);
-  bool poda3 = forat_gran(f);
-  return L >= best_L || poda1 || poda3 ;
+bool poda(const vector<int>& front, int L, int best_L, Pair aguj){
+  return L >= best_L || big_hole(aguj) || cant_be_better(front, L, best_L);
 }
 
 // Dado un telero, la anchura de una pieza y una posicion, devuelve si se puede añadir
-bool may_add_here(const vector<int>& front, int a, int i){
+bool can_add(const vector<int>& front, int a, int i){
   for (int j = 0; j < a; j++){
-    if (i+j >= W) return false;
-    if (front[i] < front[i+j]) return false;
+    if (i+j >= W) return false; // Si sobresale lateralmente
+    if (front[i] < front[i+j]) return false; // Si solapa con otras piezas
   }
   return true;
 }
 
 // Dado un telero, una pieza y una posición, actualiza el telero para añadir la pieza
-void update_teler(vector<int>& front, Pair piece, Pair& f, int i){
+void update_teler(vector<int>& front, Pair piece, Pair& aguj, int i){
   int a = piece.first; int b = piece.second;
-  int pivot = front[i];
+  int pivot = front[i]; // Posicion desde donde se añade la pieza
+
   //Calcula las dimensiones del agujero
-  f.first += pivot - front[i];
-  f.second += 1;
+  aguj.first += pivot - front[i];
+  aguj.second += 1;
   front[i] = pivot + b;
   for (int j=1; j<a; ++j) {
     front[i+j]= pivot+b;
-    f.second += 1;
-    // cout<< i+j<<endl;
-    if (front[i+j] > front[i+j-1]) f.first = pivot - front[i+j];
+    aguj.second += 1;
+    if (front[i+j] > front[i+j-1]) aguj.first = pivot - front[i+j];
   }
 }
 
+// Añade la pieza indicada en add_piece
+void execute_addition(int a, int b, Pair orig_p, int i, char** argv, vector<int>& front, VectCoords& best_disp,
+                VectCoords& disp, int& best_L, int k){
+  n[orig_p] -=1;
+  disp.push_back({{i, front[i]},{i+a-1, front[i]+b-1}});
 
+  vector<int> new_front = front; //Para no perder información al añadir una pieza
+  Pair aguj = {0,0}; // Tamaño del agujero creado al añadir una pieza
+
+  update_teler(new_front, {a,b}, aguj, i);
+  exh_search(argv, new_front, best_disp, disp, best_L, *max_element(new_front.cbegin(), new_front.cend()), aguj, k-1);
+  
+  // Deshacer los cambios recursivos
+  n[orig_p] +=1; 
+  disp.pop_back();
+}
+
+// Dada una solución parcial y una posición, añade en dicha posición una de las piezas
+// que faltan por añadir siempre que sea posible y llama a la función recursiva
 void add_piece( char** argv, int i, vector<int>& front, VectCoords& best_disp,
-                VectCoords& disp, int& best_L, int L, Pair f, int k){
+                VectCoords& disp, int& best_L, int k){
   for(pair<Pair, int> piezas : n){
-    if (piezas.second > 0){
+    if (piezas.second > 0){ // Si quedan piezas de este tamaño por añadir
       Pair p = piezas.first;
 
+      // Se busca si la pieza fue rotada
       Pair orig_p = p; 
       if (!is_original(p)) orig_p = {p.second, p.first};
 
       int a = p.first; int b = p.second;
-      if (may_add_here(front, a, i)){ //Añadir la pieza
-        // cout << "fixed " << i <<endl;
-        n[orig_p] -=1;
-        disp.push_back({{i, front[i]},{i+a-1, front[i]+b-1}});
-
-        vector<int> new_front = front;
-        
-        Pair new_f = {0,0};
-        update_teler(new_front, p, new_f, i);
-        exh_search(argv, new_front, best_disp, disp, best_L, *max_element(new_front.cbegin(), new_front.cend()), new_f, k-1);
-        
-        // Deshacer los cambios recursivos
-        n[orig_p] +=1; 
-        disp.pop_back();
+      if (can_add(front, a, i)){
+        execute_addition(a, b, orig_p, i, argv, front, best_disp, disp, best_L, k);
       }
 
-      // Caso reversed
-      a = p.second; b = p.first;
-      if ( a != b && may_add_here(front, a, i)){ //Añadir la pieza
-        // cout << "fixed " << i <<endl;
-        n[orig_p] -=1;
-        disp.push_back({{i, front[i]},{i+a-1, front[i]+b-1}});
-
-        vector<int> new_front = front;
-        // Pair new_f = f;
-        update_teler(new_front, {a,b}, f, i);
-        
-        exh_search(argv, new_front, best_disp, disp, best_L, *max_element(new_front.cbegin(), new_front.cend()), f, k-1);
-        
-        // Deshacer los cambios recursivos
-        n[orig_p] +=1; 
-        disp.pop_back();
+      // Misma pieza pero rotada
+      if ( a != b && can_add(front, b, i)){
+        execute_addition(b, a, orig_p, i, argv, front, best_disp, disp, best_L, k);
       }
     }
   }   
 }
 
-// f: numero de forats
+// Dada una solución parcial del telar, busca recursivamente la mejor distribución 
+// con todas las piezas añadidas y escribe la mejor solución
 void exh_search(char** argv, vector<int> front, VectCoords& best_disp, VectCoords& disp,
-                 int& best_L, int L, Pair f, int k)
+                 int& best_L, int L, Pair aguj, int k)
 {
-  // cout << "L: " <<L<<" "<<k<<endl;
-  // cout << "f: " << f<<endl;
-  // for (int col : front) cout << col <<" ";
-  // cout<<endl;
-  if(!poda(front, L, best_L, f)){
+  if(!poda(front, L, best_L, aguj)){
     if(k==0){ //Si ha añadido todas las piezas 
       if(L < best_L){ 
         best_L = L;
         best_disp = disp;
 
-        // Mira el tiempo
         double elapsed_seconds = finish_time();
 
         write_ans(argv, elapsed_seconds, best_disp, best_L);
       }
-      // else if (L == best_L) cout << "Ha trobat una solucio equivalent"<<endl;
     }
     else{ 
-      vector<Pair> order(front.size());
-      for (int i = 0; i < int(front.size()); ++i) order[i] = {i, front[i]};
-      sort(order.begin(), order.end(), compareBySecond);
+      vector<Pair> order(W); // Se buscan todas las posiciones de debajo a arriba
+      for (int i = 0; i < int(W); ++i) order[i] = {i, front[i]};
+      sort(order.begin(), order.end(), AscendingHeight);
 
-      for (Pair pos : order){ //Buscar de arriba a abajo
+      for (Pair pos : order){
         int i = pos.first;
-        add_piece(argv, i, front, best_disp, disp, best_L, L, f, k);
+        add_piece(argv, i, front, best_disp, disp, best_L, k);
       }
     }
   }
@@ -233,32 +209,18 @@ void exh_search(char** argv, vector<int> front, VectCoords& best_disp, VectCoord
 
 
 int main(int argc, char** argv) {
-
   // Formato de ejecución
   if (argc == 1) {
     cout << "Makes a sanity check of a solution" << endl;
     cout << "Usage: " << argv[0] << " INPUT_FILE OUTPUT_FILE" << endl;
     exit(0);
   }
-
-  int k; // Numero de piezas por anadir
   assert(argc == 3);
-  read_instance(argv, k);
 
-  // Calcular una cota superior para realizar podas
-  int best_L = 999999; // Por alguna razón cuando se usa la cota superior a veces no encuentra resultado
-  // for(pair<Pair, int> bloc : n){
-  //   best_L += bloc.second * min(bloc.first.first, bloc.first.second);
-  // }
-  cout << "best L: "<<best_L<<endl;
+  int k = read_instance(argv); //k: Numero de piezas por añadir
+  int best_L = INT_MAX;
+  vector<int> front(W, 0); // Altura a la que se ha llegado en cada columna
 
-  // Altura a la que se ha llegado en cada columna
-  vector<int> front(W, 0); 
-
-  VectCoords best_disp ={}, disp = {};
+  VectCoords best_disp = {}, disp = {}; //Posición de las piezas añadidas
   exh_search(argv, front, best_disp, disp, best_L, 0, {0,0}, k);
-
-  // Finalización de la busqueda
-  double elapsed_seconds = finish_time();
-  cout << "Ha tardat en trobar totes les combinacions: " << elapsed_seconds<< endl;
 }
