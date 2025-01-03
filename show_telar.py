@@ -68,9 +68,10 @@ def update(n):
 
 
 # Example usage:
-with open("output.txt", "r") as file:
-    rectangles = [tuple(map(int, line.split())) for line in file.readlines()[2:]]
-print("num rectangles :", len(rectangles))
+file = open("output.txt", "r")
+rectangles = [tuple(map(int, line.split())) for line in file.readlines()[2:]]
+file = open("output.txt", "r")  # Por algún motivo tiene que estar para leer la L
+print("num rectangles :", len(rectangles), "  Given L :", list(file)[1].strip())
 
 fig.tight_layout()
 
