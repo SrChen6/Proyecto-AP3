@@ -50,8 +50,6 @@ void read_instance(char** file) {
     N -= ni;
     n[{pi, qi}] = ni;
   }
-  std::cout << "W: "<<W<<" N: "<<endl; //TEMPORAL: PARA FACILITAR DEBUGGING
-  for (const auto& p : n){ cout <<n[{p.first.first, p.first.second}]<<" "<< p.first.first << " " <<p.first.second<<endl;}
 }
 
 // Escribe el resultado en el archivo especificado en argv[2]
@@ -62,14 +60,10 @@ void write_ans(char** argv){
 
   ofstream outp(argv[2]);
   outp << elapsed_seconds << endl << L << endl;
-  cout << elapsed_seconds << endl << "L :" << L << endl;
   for (Coords bloc : disp){
     outp << bloc.first.first << " " << bloc.first.second << " ";
     outp << bloc.second.first << " " << bloc.second.second << endl;
-    cout << bloc.first.first << " " << bloc.first.second << " ";
-    cout << bloc.second.first << " " << bloc.second.second << endl;
   }
-  cout <<endl;
 }
 
 bool compareBySecond(const pair<int, int>& a, const pair<int, int>& b) {
@@ -194,7 +188,7 @@ Popula recombine(Popula P){
         if ( !is_in(P[i][k].first, frag2) ) comp1.push_back(P[i][k].first);
         if ( !is_in(P[j][k].first, frag1) ) comp2.push_back(P[j][k].first);
       }
-      // Para el array de bits se truzan en un punto
+      // Para el array de bits se cruzan en un punto
       for (int k = 0; k < L; ++k) {
         if (k < rb){
           bitvec1[k] = P[i][k].second;
@@ -206,7 +200,7 @@ Popula recombine(Popula P){
         }
       }
 
-      //Se reconstruye los individuos combinados
+      // Se reconstruye los individuos combinados
       idx = 0;
       for (int k = 0; k < L; ++k){
         if (mi<=k && k<ma) {
@@ -229,6 +223,8 @@ Popula recombine(Popula P){
 // Mutar las soluciones intercambiando elementos de la permutación
 //  e inviertiendo bits
 Popula mutate(Popula P, int prob){
+  // int prob representa el inverso de la probabilidad de mutación
+  //  i.e. 1 de cada "prob" individuos muta
   Popula out(int(P.size()));
   int L = int(P[0].size());
   int r1, r2;
@@ -299,9 +295,4 @@ int main(int argc, char** argv) {
   
   metah(argv);
 
-  // Finalización de la busqueda
-  auto end = chrono::steady_clock::now();
-  auto elapsed = chrono::duration_cast<chrono::milliseconds>(end - start);
-  double elapsed_seconds = elapsed.count() / 1000.0;
-  cout << "Ha tardat en trobar totes les combinacions: " << elapsed_seconds<< endl;
 }
