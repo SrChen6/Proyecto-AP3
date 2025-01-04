@@ -10,6 +10,7 @@
 using namespace std;
 
 
+
 typedef pair<int, int> Pair; //Tuplas
 struct CompareByFirst {
     bool operator()(const Pair& a, const Pair& b) const {
@@ -19,6 +20,7 @@ struct CompareByFirst {
         return a.second < b.second; // Si el primero es igual, ordenar por el segundo
     }
 };
+
 typedef map<Pair, int, CompareByFirst>    Map; //Diccionarios
 typedef pair<Pair, Pair>     Coords; // Posición de una pieza en la solución
 typedef vector<Coords>     VectCoords; //Conjunto de piezas posicionadas
@@ -28,7 +30,8 @@ typedef vector<Pair>      Elem; // Elemento del grupo de permutaciones
 // first : indice de posición (permutacion) ;  second: si gira o no (0-1)
 typedef vector<Elem>    Popula; // Población de soluciones 
 
-// GLOBALS 
+
+// GLOBALES 
 int W, N; //Anchura del telar y numero de comandas
 Map n; //Dimensiones + numero de piezas
 int best_L=999999; // Mejor longitud encontrada hasta el momento
@@ -39,6 +42,7 @@ vector< Pair > n_orig = {}; // Configuración identidad
 
 // Inicio de cronómetro
 auto start = chrono::steady_clock::now();
+
 
 // Lee la entrada y asigna valor a las variables globales
 void read_instance(char** file) {
@@ -52,6 +56,16 @@ void read_instance(char** file) {
   }
 }
 
+
+// Devuelve el tiempo transcurrido desde el inicio de la ejecución
+double finish_time(){
+  auto end = chrono::steady_clock::now();
+  auto elapsed = chrono::duration_cast<chrono::milliseconds>(end - start);
+  double elapsed_seconds = elapsed.count() / 1000.0;
+  return elapsed_seconds;
+}
+
+
 // Escribe el resultado en el archivo especificado en argv[2]
 void write_ans(char** argv){
   auto end = chrono::steady_clock::now();
@@ -59,16 +73,18 @@ void write_ans(char** argv){
   double elapsed_seconds = elapsed.count() / 1000.0;
 
   ofstream outp(argv[2]);
-  outp << elapsed_seconds << endl << L << endl;
+  outp << finish_time() << endl << L << endl;
   for (Coords bloc : disp){
     outp << bloc.first.first << " " << bloc.first.second << " ";
     outp << bloc.second.first << " " << bloc.second.second << endl;
   }
 }
 
+
 bool compareBySecond(const pair<int, int>& a, const pair<int, int>& b) {
-    return a.second < b.second; // Compare based on the second element
+    return a.second < b.second; // Comparar según el segundo elemento
 }
+
 
 // Hacer actuar el elemento sobre la lista la configuración inicial
 //  para obtener la ordenación correspondiente
@@ -82,11 +98,13 @@ vector<Pair> act(Elem A){
   return out;
 }
 
+
 // Metodo para comprobar si integer pertenece a un vector.
 bool is_in(int a, vector<int> v){
   for (int e : v) if(a==e) return true;
   return false;
 }
+
 
 int fitness(char** argv, Elem action){
   // Basada en la implementación del greedy, 
@@ -137,6 +155,7 @@ int fitness(char** argv, Elem action){
   return L;
 }
 
+
 // Seleccionar individuos según fitness y posteriormente seleccionar progenitores
 Popula selection(char** argv, Popula P, int numIndv, int numParent ){
   vector<Pair> order(P.size());
@@ -160,6 +179,7 @@ Popula selection(char** argv, Popula P, int numIndv, int numParent ){
 
   return out;
 }
+
 
 // Mediante un algoritmo de cross-over extender la población
 Popula recombine(Popula P){
@@ -220,6 +240,7 @@ Popula recombine(Popula P){
   return out;
 }
 
+
 // Mutar las soluciones intercambiando elementos de la permutación
 //  e inviertiendo bits
 Popula mutate(Popula P, int prob){
@@ -232,10 +253,12 @@ Popula mutate(Popula P, int prob){
 
   for (int i=0; i<int(P.size()); ++i){
     Elem e(L);
+
     for (int k=0; k<L; ++k){
       if (rand()%prob == 0) e[k] = {P[i][k].first, (1+P[i][k].second)%2};
       else e[k] = P[i][k];
     }
+
     for (int j=0; j<50; ++j){
       if (rand()%prob == 0){
         r1 = rand()%L; r2 = rand()%L;
@@ -250,6 +273,7 @@ Popula mutate(Popula P, int prob){
   }
   return out;
 }
+
 
 void metah(char** argv){
   // Generar la primera configuración, ordenando las piezas de grande a pequeña
@@ -280,6 +304,7 @@ void metah(char** argv){
     Pop = selection(argv, Pop, 100, 20);
   }
 }
+
 
 int main(int argc, char** argv) {
 

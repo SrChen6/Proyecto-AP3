@@ -7,6 +7,8 @@
 #include <algorithm>
 using namespace std;
 
+
+
 typedef pair<int, int> Pair; 
 //Piezas ordenadas de grande a pequeño
 struct AreaDescendiente {
@@ -17,13 +19,16 @@ struct AreaDescendiente {
         return a.first > b.first; // Si las areas son las mismas, se priorizan las piezas finas
     }
 };
+
 typedef map<Pair, int, AreaDescendiente>    Map; //Dimensiones y numero de repeticiones
 typedef pair<Pair, Pair>     Coords; // Posición de una pieza
 typedef vector<Coords>     VectCoords; //Conjunto de piezas posicionadas
 
-// GLOBALS 
+
+// GLOBALES 
 int W, N; //Anchura del telar y numero de comandas
-Map n; //Dimensiones -> numero de piezas
+Map n; //Numero de piezas
+
 
 // Inicio de cronómetro
 auto start = chrono::steady_clock::now();
@@ -33,6 +38,7 @@ auto start = chrono::steady_clock::now();
 // con todas las piezas añadidas y escribe la mejor solución
 void exh_search(char** argv, vector<int> front, VectCoords& best_disp, VectCoords& disp, int& best_L, int L, Pair aguj, int k);
 
+
 // Devuelve el tiempo transcurrido desde el inicio de la ejecución
 double finish_time(){
   auto end = chrono::steady_clock::now();
@@ -40,6 +46,7 @@ double finish_time(){
   double elapsed_seconds = elapsed.count() / 1000.0;
   return elapsed_seconds;
 }
+
 
 // Lee la entrada y asigna valor a las variables globales
 int read_instance(char** file) {
@@ -55,9 +62,9 @@ int read_instance(char** file) {
   return k;
 }
 
+
 // Escribe el resultado en el archivo especificado en argv[2]
 void write_ans(char** argv, double elapsed_seconds, VectCoords& best_disp, int best_L){
-  // Escribe las soluciones encontradas por terminal y en el output file
   ofstream outp(argv[2]);
   outp << elapsed_seconds << endl << best_L << endl;
   for (Coords bloc : best_disp){
@@ -65,6 +72,7 @@ void write_ans(char** argv, double elapsed_seconds, VectCoords& best_disp, int b
     outp << bloc.second.first << " " << bloc.second.second << endl;
   }
 }
+
 
 // Devuelve true si la pieza es una de las dadas en el input, sino es el transpuesto
 bool is_original(Pair piece){
@@ -74,10 +82,12 @@ bool is_original(Pair piece){
   return false;
 }
 
+
 // Ordenación segun el segundo elemento de un Pair (la altura)
 bool AscendingHeight(const Pair& a, const Pair& b) {
     return a.second < b.second;
 }
+
 
 // Devuelve true si en el agujero se puede añadir alguna de las piezas faltantes
 bool big_hole(Pair aguj){
@@ -86,6 +96,7 @@ bool big_hole(Pair aguj){
   }
   return false;
 }
+
 
 // Devuelve true si, añadiendo las fiezas faltantes como líquidos, la solucion parcial
 // no puede superar la mejor solución hasta el momento
@@ -105,10 +116,12 @@ bool cant_be_better(const vector<int>& front, int L, int best_L){
   return L + (area_piezas - area_hasta_L)/W >= best_L;
 }
 
+
 // Devuelve true si la rama se puede podar
 bool poda(const vector<int>& front, int L, int best_L, Pair aguj){
   return L >= best_L || big_hole(aguj) || cant_be_better(front, L, best_L);
 }
+
 
 // Dado un telero, la anchura de una pieza y una posicion, devuelve si se puede añadir
 bool can_add(const vector<int>& front, int a, int i){
@@ -118,6 +131,7 @@ bool can_add(const vector<int>& front, int a, int i){
   }
   return true;
 }
+
 
 // Dado un telero, una pieza y una posición, actualiza el telero para añadir la pieza
 void update_teler(vector<int>& front, Pair piece, Pair& aguj, int i){
@@ -135,6 +149,7 @@ void update_teler(vector<int>& front, Pair piece, Pair& aguj, int i){
   }
 }
 
+
 // Añade la pieza indicada en add_piece
 void execute_addition(int a, int b, Pair orig_p, int i, char** argv, vector<int>& front, VectCoords& best_disp,
                 VectCoords& disp, int& best_L, int k){
@@ -151,6 +166,7 @@ void execute_addition(int a, int b, Pair orig_p, int i, char** argv, vector<int>
   n[orig_p] +=1; 
   disp.pop_back();
 }
+
 
 // Dada una solución parcial y una posición, añade en dicha posición una de las piezas
 // que faltan por añadir siempre que sea posible y llama a la función recursiva
@@ -176,6 +192,7 @@ void add_piece( char** argv, int i, vector<int>& front, VectCoords& best_disp,
     }
   }   
 }
+
 
 // Dada una solución parcial del telar, busca recursivamente la mejor distribución 
 // con todas las piezas añadidas y escribe la mejor solución
@@ -205,7 +222,6 @@ void exh_search(char** argv, vector<int> front, VectCoords& best_disp, VectCoord
     }
   }
 }
-
 
 
 int main(int argc, char** argv) {

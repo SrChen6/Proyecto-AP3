@@ -7,6 +7,8 @@
 #include <algorithm>
 using namespace std;
 
+
+
 typedef pair<int, int> Pair; //Tuplas
 struct CompareByFirst {
     bool operator()(const Pair& a, const Pair& b) const {
@@ -16,19 +18,24 @@ struct CompareByFirst {
         return a.second < b.second;
     }
 };
+
 typedef map<Pair, int, CompareByFirst>    Map; //Diccionarios
 typedef pair<Pair, Pair>     Coords; // Posición de una pieza
 typedef vector<Coords>     VectCoords; //Conjunto de piezas posicionadas
 
-// GLOBALS 
+
+// GLOBALES 
 int W, N; //Anchura del telar y numero de comandas
 Map n; //Dimensiones + numero de piezas
 int L=INT_MAX; //Longitud ans parcial
 VectCoords disp = {}; //disposicion de ans parcial/total
 
+
 // Inicio de cronómetro
 auto start = chrono::steady_clock::now();
 
+
+// Devuelve el tiempo de ejecución tras encontrar una solución 
 double finish_time(){
   auto end = chrono::steady_clock::now();
   auto elapsed = chrono::duration_cast<chrono::milliseconds>(end - start);
@@ -36,6 +43,8 @@ double finish_time(){
   return elapsed_seconds;
 }
 
+
+// Lee la entrada y asigna valor a las variables globales
 void read_instance(char** file) {
   ifstream inp(file[1]);
   inp >> W >> N;
@@ -47,6 +56,8 @@ void read_instance(char** file) {
   }
 }
 
+
+// Escribe el resultado en el archivo especificado en argv[2]
 void write_ans(char** argv, double elapsed_seconds){
   ofstream outp(argv[2]);
   outp << elapsed_seconds << endl << L << endl;
@@ -56,9 +67,11 @@ void write_ans(char** argv, double elapsed_seconds){
   }
 }
 
+
 bool compareBySecond(const pair<int, int>& a, const pair<int, int>& b) {
-    return a.second < b.second; // Compare based on the second element
+    return a.second < b.second; // Comparar según el segundo elemento
 }
+
 
 // Dado un telero, la anchura de una pieza y una posicion, devuelve si se puede añadir
 bool can_add(const vector<int>& front, int a, int i){
@@ -68,6 +81,7 @@ bool can_add(const vector<int>& front, int a, int i){
   }
   return true;
 }
+
 
 // Añade todas las piezas, de ancho a fino, en la posición más baja posible
 void greedy(char** argv){
@@ -95,13 +109,13 @@ void greedy(char** argv){
           for (int j=0; j<a; ++j) front[i+j]= pivot+b;
           been_put = true;
         }
-
-
       }
+
     }
   }
   L = *max_element(front.cbegin(), front.cend());
 }
+
 
 int main(int argc, char** argv) {
 
