@@ -9,30 +9,30 @@
 #include <cstdlib>
 using namespace std;
 
-// Idea: Reordenar el vector de piezas según grande a pequeño y generar dos vectores : una con la mitad grande 
-// y otra con la mitad pequeña. 
 
 typedef pair<int, int> Pair; //Tuplas
 struct CompareByFirst {
     bool operator()(const Pair& a, const Pair& b) const {
         if (a.first != b.first) {
-            return a.first > b.first; // Compare first elements
+            return a.first > b.first; // Comparar por primer elemento
         }
-        return a.second < b.second; // If first elements are equal, compare second elements
+        return a.second < b.second; // Si el primero es igual, ordenar por el segundo
     }
 };
 typedef map<Pair, int, CompareByFirst>    Map; //Diccionarios
 typedef pair<Pair, Pair>     Coords; // Posición de una pieza en la solución
 typedef vector<Coords>     VectCoords; //Conjunto de piezas posicionadas
 typedef vector<Pair>      Elem; // Elemento del grupo de permutaciones
-// first : indice de posición (permutacion) ;  second: si gira o no
+// Se implementa un Algoritmo Genético donde cada individuo se representa
+//    mediante una acción de permutar y girar las piezas a colocar.
+// first : indice de posición (permutacion) ;  second: si gira o no (0-1)
 typedef vector<Elem>    Popula; // Población de soluciones 
 
 // GLOBALS 
 int W, N; //Anchura del telar y numero de comandas
 Map n; //Dimensiones + numero de piezas
-int best_L=999999; 
-int L = best_L ; //Longitud ans parcial
+int best_L=999999; // Mejor longitud encontrada hasta el momento
+int L = best_L ; //Longitud solución parcial
 VectCoords disp = {}; //Disposicion de ans parcial/total
 vector< Pair > n_orig = {}; // Configuración identidad
 
@@ -40,6 +40,7 @@ vector< Pair > n_orig = {}; // Configuración identidad
 // Inicio de cronómetro
 auto start = chrono::steady_clock::now();
 
+// Lee la entrada y asigna valor a las variables globales
 void read_instance(char** file) {
   ifstream inp(file[1]);
   inp >> W >> N;
@@ -53,6 +54,7 @@ void read_instance(char** file) {
   for (const auto& p : n){ cout <<n[{p.first.first, p.first.second}]<<" "<< p.first.first << " " <<p.first.second<<endl;}
 }
 
+// Escribe el resultado en el archivo especificado en argv[2]
 void write_ans(char** argv){
   auto end = chrono::steady_clock::now();
   auto elapsed = chrono::duration_cast<chrono::milliseconds>(end - start);
@@ -74,30 +76,19 @@ bool compareBySecond(const pair<int, int>& a, const pair<int, int>& b) {
     return a.second < b.second; // Compare based on the second element
 }
 
-// <<< /!\ <<< /!\ <<< /!\ <<< /!\ Realmente importante ???
-Elem operate(Elem A, Elem B){
-  //Hacer actuar A sobre B
-  int N = int(A.size());
-  assert( N == int(B.size()) ) ;
-  
-  Elem out(N, {0,0});
-
-  for (int i=0; i<N; ++i){
-    out[i].first = B[A[i].first].first ; 
-    out[i].second = (A[i].second + B[A[i].first].second)%2 ;
-  }
-  return out;
-}
-
+// Hacer actuar el elemento sobre la lista la configuración inicial
+//  para obtener la ordenación correspondiente
 vector<Pair> act(Elem A){
   vector<Pair> out(int(A.size()));
   for (int i=0; i<int(A.size()); ++i){
-    out[i] = n_orig[A[i].first];
+    out[i] = n_orig[A[i].first]; // first representa la permutación
     if (A[i].second && out[i].second <= W) out[i] = {out[i].second, out[i].first};
+    // second indica si se rota la pieza de tal indice
   }
   return out;
 }
 
+// Metodo para comprobar si integer pertenece a un vector.
 bool is_in(int a, vector<int> v){
   for (int e : v) if(a==e) return true;
   return false;
@@ -111,14 +102,11 @@ int fitness(char** argv, Elem action){
   vector<Pair> n_list = act(action) ;
   disp = {};
 
-  // cout << "testing ";
-  // for( Pair p: action) cout << p.first << p.second << " ";
-  // cout << endl;
-
   for(Pair p: n_list){
       bool been_put = false;
       int delta = 0; // incremento desde el front a colocar la pieza
 
+      // Dimensiones de la pieza
       int a = p.first; int b = p.second;
 
       vector<Pair> order(front.size());
@@ -145,35 +133,41 @@ int fitness(char** argv, Elem action){
             been_put = true;
           }
         }
-        ++delta;
-        // write_ans(argv);
+        ++delta; // En caso de no poder colocar la pieza, se incrementa la altura.
       }
-    // cout << a << b << " " << been_put <<endl ;
   }
   
   L = *max_element(front.cbegin(), front.cend());
-  if (L < best_L){  best_L = L;  write_ans(argv);
-  }
+  if (L < best_L) {best_L = L;  write_ans(argv);}
 
   return L;
 }
 
-Popula selectParents(char** argv, Popula P, int numSelected ){
+// Seleccionar individuos según fitness y posteriormente seleccionar progenitores
+Popula selection(char** argv, Popula P, int numIndv, int numParent ){
   vector<Pair> order(P.size());
   vector<Elem> out = {};
-  int n = int(P.size());
+  vector<Elem> indiv = {};
   int idx = 0;
 
-  for (int i = 0; i < n; ++i) order[i] = {i, fitness(argv, P[i])};
+  // Ordenar individuos 
+  for (int i = 0; i < int(P.size()); ++i) order[i] = {i, fitness(argv, P[i])};
   sort(order.begin(), order.end(), compareBySecond);
 
-  while (int(out.size()) < min(numSelected, n) ){
-    if ( rand()%(2*idx+3) == 0) out.push_back( P[order[idx%n].first] );
+  // Seleccionar aquellos con mejor fitness
+  for (int i = 0; i<min(int(P.size()), numIndv); ++i) indiv.push_back(P[order[i].first]);
+
+  // Mediante una progresión descendiente como una harmonica, se seleccionan 
+  //  probabilisticamente los progenitores 
+  while ( int(out.size()) < min(numParent, int(indiv.size())) ){
+    if ( rand()%(2*idx+1) == 0) out.push_back( indiv[idx%int(indiv.size())] );
     ++idx;
   }
+
   return out;
 }
 
+// Mediante un algoritmo de cross-over extender la población
 Popula recombine(Popula P){
   int L = int(P[0].size());
   vector<Elem> out = {};
@@ -185,11 +179,12 @@ Popula recombine(Popula P){
       
       r1 = rand() % L ; r2 = rand() % L ; rb = rand() % L ; 
       mi = min(r1,r2) ; ma = max(r1,r2);
-      vector<int> frag1(ma-mi), frag2(ma-mi);
+      vector<int> frag1(ma-mi), frag2(ma-mi); 
+      // Los fragmentos de las permutaciones que no se alteraran 
       vector<int> comp1 = {}, comp2 = {};
+      // Los complementos de estos fragmentos, que con la reordenación 
+      //  resultante tras eliminar los números pertenecientes a los fragmentos.
       vector<int> bitvec1(L), bitvec2(L);
-
-      // cout << i <<j << "index" << r1<<r2<<rb<<"rand"<<endl;
 
       for (int k = mi; k < ma; ++k) {
         frag1[k-mi] = P[i][k].first;
@@ -199,6 +194,7 @@ Popula recombine(Popula P){
         if ( !is_in(P[i][k].first, frag2) ) comp1.push_back(P[i][k].first);
         if ( !is_in(P[j][k].first, frag1) ) comp2.push_back(P[j][k].first);
       }
+      // Para el array de bits se truzan en un punto
       for (int k = 0; k < L; ++k) {
         if (k < rb){
           bitvec1[k] = P[i][k].second;
@@ -210,6 +206,7 @@ Popula recombine(Popula P){
         }
       }
 
+      //Se reconstruye los individuos combinados
       idx = 0;
       for (int k = 0; k < L; ++k){
         if (mi<=k && k<ma) {
@@ -222,14 +219,15 @@ Popula recombine(Popula P){
           ++idx;
         }
       }
-      // for (int m=0; m<L; ++m) cout << O1[m].first << O1[m].second << "a" << O2[m].first << O2[m].second <<" ";
-      // cout << endl;
+
       out.push_back(O1); out.push_back(O2);
     }
   }
   return out;
 }
 
+// Mutar las soluciones intercambiando elementos de la permutación
+//  e inviertiendo bits
 Popula mutate(Popula P, int prob){
   Popula out(int(P.size()));
   int L = int(P[0].size());
@@ -245,7 +243,7 @@ Popula mutate(Popula P, int prob){
     for (int j=0; j<50; ++j){
       if (rand()%prob == 0){
         r1 = rand()%L; r2 = rand()%L;
-        while (r1 == r2) r2 = rand()%L;
+        while (r1 == r2) r2 = rand()%L; // Asegurarse de que sean diferentes
         hold = e[r1]; 
         e[r1] = e[r2]; 
         e[r2] = hold; 
@@ -258,11 +256,13 @@ Popula mutate(Popula P, int prob){
 }
 
 void metah(char** argv){
+  // Generar la primera configuración, ordenando las piezas de grande a pequeña
   for(pair<Pair, int> blocs : n) {
     for (int repes = 0; repes < blocs.second; repes++) n_orig.push_back(blocs.first);
   }
   sort(n_orig.begin(), n_orig.end(), compareBySecond); 
 
+  // Generar el elemento identidad del grupo
   Elem Ident(int(n_orig.size()));
   for (int i=0; i<int(n_orig.size()); ++i){
     Ident[i] = {i, 0};
@@ -271,23 +271,18 @@ void metah(char** argv){
   Elem Rever = Ident;
   reverse(Rever.begin(), Rever.end());
 
+  // Inicializar la población con la Identidad (cual es la configuración 
+  //  utilizada en el greedy), y su Reverso (que será una mala solución pero 
+  //  inducirá variabilidad genética), y sus mutaciones con alta probabilidad.
   Popula Pop = { Ident, Rever };
   Pop.push_back(mutate({Ident}, 2)[0]);
   Pop.push_back(mutate({Rever}, 2)[0]);
 
-
   while (1){
     Pop = recombine(Pop);
-    Pop = mutate(Pop, 20);
-    Pop = selectParents(argv, Pop, 25);
+    Pop = mutate(Pop, 50);
+    Pop = selection(argv, Pop, 100, 20);
   }
-
-  // Ident = {{0,0}, {1,0}, {2,1}, {3,1}, {4,0}, {5,1}, {6,1}, {7,1}, {8,1}, {9,1},
-  //  {10,0}, {11,0}, {12,0}, {13,0}, {14,0}, {15,0}, {16,0}, {17,1}, {18,0}, {19,1},
-  //  {20,0}, {21,1}, {22,0}, {23,1}, {24,0}, {25,0}, {26,0}, {27,0}, {28,0}};
-
-  // cout << fitness(argv, Ident) <<endl;
-
 }
 
 int main(int argc, char** argv) {
